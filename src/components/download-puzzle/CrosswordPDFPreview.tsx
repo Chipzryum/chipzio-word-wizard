@@ -1,9 +1,8 @@
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
-import { PuzzleGrid } from "@/utils/wordSearchUtils";
-import { CombinedPuzzleGrid } from "./DownloadPuzzleDialog";
+import { CrosswordGrid, isWordStart } from "@/utils/crosswordUtils";
 
-interface PuzzlePDFPreviewProps {
-  puzzle: CombinedPuzzleGrid | null;
+interface CrosswordPDFPreviewProps {
+  puzzle: CrosswordGrid | null;
   title: string;
   subtitle: string;
   instruction: string;
@@ -32,10 +31,11 @@ interface PuzzlePDFPreviewProps {
   imageGridSize?: number;
   imageAngle?: number;
   imageSpacing?: number;
+  showSolution?: boolean;
   includeSolution?: boolean;
 }
 
-export const PuzzlePDFPreview = ({
+export const CrosswordPDFPreview = ({
   puzzle,
   title,
   subtitle,
@@ -65,8 +65,9 @@ export const PuzzlePDFPreview = ({
   imageGridSize = 100,
   imageAngle = 0,
   imageSpacing = 0,
+  showSolution = false,
   includeSolution = true,
-}: PuzzlePDFPreviewProps) => {
+}: CrosswordPDFPreviewProps) => {
   if (!puzzle) return null;
   
   // Calculate font sizes based on page dimensions and multipliers
@@ -81,6 +82,7 @@ export const PuzzlePDFPreview = ({
       subtitleSize: Math.max(14, Math.min(36, Math.floor(24 * sizeRatio * subtitleSizeMultiplier))),
       instructionSize: Math.max(8, Math.min(24, Math.floor(14 * sizeRatio * instructionSizeMultiplier))),
       wordListSize: Math.max(6, Math.min(28, Math.floor(12 * sizeRatio * wordListSizeMultiplier))),
+      numberSize: Math.max(6, Math.min(12, Math.floor(8 * sizeRatio))),
     };
   };
 
@@ -147,9 +149,18 @@ export const PuzzlePDFPreview = ({
       </View>
     );
   };
+
+  // Categorize word placements by direction
+  const acrossClues = puzzle.wordPlacements
+    .filter(placement => placement.direction === 'across')
+    .sort((a, b) => (a.number || 0) - (b.number || 0));
+    
+  const downClues = puzzle.wordPlacements
+    .filter(placement => placement.direction === 'down')
+    .sort((a, b) => (a.number || 0) - (b.number || 0));
   
   // Create a puzzle page with the given showSolution setting
-  const createPuzzlePage = (showSolution: boolean) => (
+  const createPuzzlePage = (forSolution: boolean) => (
     <Page size={[currentWidth, currentHeight]} style={pdfStyles.page} wrap={false}>
       {/* Tiled background pattern */}
       {uploadedImages && uploadedImages.length > 0 && createTiledBackground()}
@@ -158,7 +169,7 @@ export const PuzzlePDFPreview = ({
         {showTitle && (
           <View style={[pdfStyles.titleContainer, {marginTop: getVerticalOffset(titleOffset)}]}>
             <Text style={pdfStyles.title}>
-              {showSolution ? `${title.toUpperCase()} - SOLUTION` : title.toUpperCase()}
+              {forSolution ? `${title.toUpperCase()} - SOLUTION` : title.toUpperCase()}
             </Text>
           </View>
         )}
@@ -169,7 +180,7 @@ export const PuzzlePDFPreview = ({
           </View>
         )}
         
-        {showInstruction && !showSolution && (
+        {showInstruction && !forSolution && (
           <View style={[pdfStyles.instructionContainer, {marginTop: getVerticalOffset(instructionOffset)}]}>
             <Text style={pdfStyles.instruction}>{instruction}</Text>
           </View>
@@ -180,13 +191,24 @@ export const PuzzlePDFPreview = ({
             <View style={pdfStyles.grid}>
               {puzzle.grid.map((row, i) => (
                 <View key={i} style={pdfStyles.row}>
-                  {row.map((cell, j) => (
-                    <View key={`${i}-${j}`} style={pdfStyles.cell}>
-                      <Text style={pdfStyles.letter}>
-                        {showSolution ? cell : (cell && cell !== ' ' ? cell : '')}
-                      </Text>
-                    </View>
-                  ))}
+                  {row.map((cell, j) => {
+                    const wordNumber = isWordStart(puzzle.wordPlacements, i, j);
+                    const isEmpty = cell === '';
+                    
+                    return (
+                      <View key={`${i}-${j}`} style={[
+                        pdfStyles.cell,
+                        isEmpty ? pdfStyles.emptyCell : null
+                      ]}>
+                        {wordNumber !== null && (
+                          <Text style={pdfStyles.cellNumber}>{wordNumber}</Text>
+                        )}
+                        {!isEmpty && forSolution && (
+                          <Text style={pdfStyles.letter}>{cell}</Text>
+                        )}
+                      </View>
+                    );
+                  })}
                 </View>
               ))}
             </View>
@@ -195,10 +217,26 @@ export const PuzzlePDFPreview = ({
         
         {showWordList && (
           <View style={[pdfStyles.wordListContainer, {marginTop: getVerticalOffset(wordListOffset)}]}>
-            <View style={pdfStyles.wordList}>
-              {puzzle.wordPlacements.map(({ word }, index) => (
-                <Text key={index} style={pdfStyles.wordItem}>{word.toLowerCase()}</Text>
-              ))}
+            <View style={pdfStyles.cluesContainer}>
+              <View style={pdfStyles.clueColumn}>
+                <Text style={pdfStyles.clueHeader}>ACROSS</Text>
+                {acrossClues.map((placement) => (
+                  <Text key={`across-${placement.number}`} style={pdfStyles.clueItem}>
+                    {placement.number}. {placement.clue}
+                    {forSolution ? ` (${placement.word})` : ''}
+                  </Text>
+                ))}
+              </View>
+              
+              <View style={pdfStyles.clueColumn}>
+                <Text style={pdfStyles.clueHeader}>DOWN</Text>
+                {downClues.map((placement) => (
+                  <Text key={`down-${placement.number}`} style={pdfStyles.clueItem}>
+                    {placement.number}. {placement.clue}
+                    {forSolution ? ` (${placement.word})` : ''}
+                  </Text>
+                ))}
+              </View>
             </View>
           </View>
         )}
@@ -206,7 +244,7 @@ export const PuzzlePDFPreview = ({
     </Page>
   );
   
-  // Ensure we're creating either one or two pages based on the includeSolution flag
+  // Ensure we're creating both pages: worksheet and solution
   return (
     <Document>
       {createPuzzlePage(false)}
@@ -214,12 +252,13 @@ export const PuzzlePDFPreview = ({
     </Document>
   );
 
-  // Create styles for PDF that match the preview exactly
+  // Create styles for PDF
   function createPDFStyles(fontSizes: { 
     titleSize: number; 
     subtitleSize: number; 
     instructionSize: number; 
     wordListSize: number;
+    numberSize: number;
   }) {
     // Apply the exact multipliers as in the preview
     // The letter size calculation remains based on cell size
@@ -271,6 +310,7 @@ export const PuzzlePDFPreview = ({
         zIndex: 2,
         alignSelf: 'center',
         width: '100%',
+        marginTop: 20,
       },
       title: {
         fontSize: fontSizes.titleSize,
@@ -308,26 +348,42 @@ export const PuzzlePDFPreview = ({
         justifyContent: 'center',
         backgroundColor: 'rgba(255, 255, 255, 0.6)',
         borderWidth: 0.5,
-        borderColor: '#d1d5db',
+        borderColor: '#000',
+        position: 'relative',
+      },
+      emptyCell: {
+        backgroundColor: 'rgba(0, 0, 0, 1)',
+      },
+      cellNumber: {
+        position: 'absolute',
+        top: 1,
+        left: 1,
+        fontSize: fontSizes.numberSize,
+        textAlign: 'left',
       },
       letter: {
         textAlign: 'center',
         alignSelf: 'center',
         fontSize: letterSize,
       },
-      wordList: {
+      cluesContainer: {
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
       },
-      wordItem: {
-        marginHorizontal: 15,
-        marginVertical: 5,
+      clueColumn: {
+        width: '48%',
+        marginBottom: 10,
+      },
+      clueHeader: {
+        fontSize: fontSizes.wordListSize * 1.2,
+        fontWeight: 'bold',
+        marginBottom: 5,
+      },
+      clueItem: {
         fontSize: fontSizes.wordListSize,
-        backgroundColor: 'rgba(229, 231, 235, 0.6)',
-        padding: 4,
-        borderRadius: 4,
+        marginBottom: 3,
       },
     });
   }

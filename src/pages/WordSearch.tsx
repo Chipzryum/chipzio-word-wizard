@@ -307,8 +307,9 @@ PUZZLE"
 
       <DownloadPuzzleDialog
         open={showDownloadDialog}
-        onClose={() => setShowDownloadDialog(false)}
+        onOpenChange={setShowDownloadDialog}
         puzzle={puzzle}
+        puzzleType="wordsearch"
       />
     </div>
   );

@@ -1,11 +1,15 @@
 
-import { PuzzleGrid } from "@/utils/wordSearchUtils";
+import { CrosswordGrid } from "@/utils/crosswordUtils";
 import { PDFViewer } from "@react-pdf/renderer";
-import { PuzzlePDFPreview } from "./PuzzlePDFPreview";
-import { CombinedPuzzleGrid } from "./DownloadPuzzleDialog";
+import { CrosswordPDFPreview } from "./CrosswordPDFPreview";
+import { 
+  TiledBackground, 
+  CrosswordGridDisplay, 
+  CrosswordClueList 
+} from "./crossword-components";
 
-interface VisualPreviewProps {
-  puzzle: CombinedPuzzleGrid | null;
+interface CrosswordVisualPreviewProps {
+  puzzle: CrosswordGrid | null;
   showLivePreview: boolean;
   isPDFReady: boolean;
   title: string;
@@ -45,10 +49,11 @@ interface VisualPreviewProps {
   imageGridSize?: number;
   imageAngle?: number;
   imageSpacing?: number;
+  showSolution?: boolean;
   includeSolution?: boolean;
 }
 
-export const VisualPreview = ({
+export const CrosswordVisualPreview = ({
   puzzle,
   showLivePreview,
   isPDFReady,
@@ -84,13 +89,14 @@ export const VisualPreview = ({
   imageGridSize = 100,
   imageAngle = 0,
   imageSpacing = 0,
+  showSolution = false,
   includeSolution = true,
-}: VisualPreviewProps) => {
+}: CrosswordVisualPreviewProps) => {
   if (showLivePreview && isPDFReady) {
     return (
       <div className="w-full h-full flex-1">
         <PDFViewer width="100%" height="100%" className="border-0">
-          <PuzzlePDFPreview
+          <CrosswordPDFPreview
             puzzle={puzzle}
             title={title}
             subtitle={subtitle}
@@ -120,68 +126,13 @@ export const VisualPreview = ({
             imageGridSize={imageGridSize}
             imageAngle={imageAngle}
             imageSpacing={imageSpacing}
+            showSolution={showSolution}
             includeSolution={includeSolution}
           />
         </PDFViewer>
       </div>
     );
   }
-
-  console.log("Rendering VisualPreview with showWordList:", showWordList);
-  console.log("Puzzle words:", puzzle?.wordPlacements.map(wp => wp.word));
-
-  // Create a tiled background similar to the PDF version
-  const createTiledBackground = () => {
-    if (!uploadedImages || uploadedImages.length === 0) return null;
-    
-    const imageElements = [];
-    
-    // Calculate number of images needed to cover the preview completely with spacing
-    const adjustedImageSize = imageGridSize * previewScaleFactor;
-    const adjustedSpacing = imageSpacing * previewScaleFactor;
-    const totalImageSize = adjustedImageSize + adjustedSpacing;
-    
-    // Add extra rows/columns to ensure rotation covers the entire page
-    const extraCoverForRotation = imageAngle > 0 ? 2 : 0;
-    const horizontalCount = Math.ceil(currentWidth * previewScaleFactor / totalImageSize) + extraCoverForRotation;
-    const verticalCount = Math.ceil(currentHeight * previewScaleFactor / totalImageSize) + extraCoverForRotation;
-    
-    // Starting position offset for rotation coverage
-    const offsetX = imageAngle > 0 ? -adjustedImageSize : 0;
-    const offsetY = imageAngle > 0 ? -adjustedImageSize : 0;
-    
-    for (let y = 0; y < verticalCount; y++) {
-      for (let x = 0; x < horizontalCount; x++) {
-        const posX = offsetX + x * (adjustedImageSize + adjustedSpacing);
-        const posY = offsetY + y * (adjustedImageSize + adjustedSpacing);
-        
-        imageElements.push(
-          <div
-            key={`${x}-${y}`}
-            style={{
-              position: 'absolute',
-              left: `${posX}px`,
-              top: `${posY}px`,
-              width: `${adjustedImageSize}px`,
-              height: `${adjustedImageSize}px`,
-              backgroundImage: `url(${uploadedImages[0]})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              opacity: imageOpacity,
-              transform: `rotate(${imageAngle}deg)`,
-              transformOrigin: 'center',
-            }}
-          />
-        );
-      }
-    }
-    
-    return (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
-        {imageElements}
-      </div>
-    );
-  };
 
   return (
     <div 
@@ -194,7 +145,18 @@ export const VisualPreview = ({
       }}
     >
       {/* Apply tiled background pattern with individual rotated images */}
-      {uploadedImages && uploadedImages.length > 0 && createTiledBackground()}
+      {uploadedImages && uploadedImages.length > 0 && (
+        <TiledBackground
+          uploadedImages={uploadedImages}
+          currentWidth={currentWidth}
+          currentHeight={currentHeight}
+          imageGridSize={imageGridSize}
+          imageSpacing={imageSpacing}
+          imageOpacity={imageOpacity}
+          imageAngle={imageAngle}
+          previewScaleFactor={previewScaleFactor}
+        />
+      )}
       
       <div className="flex flex-col h-full relative" style={{ zIndex: 2 }}>
         {showTitle && (
@@ -205,7 +167,7 @@ export const VisualPreview = ({
               marginTop: `${getVerticalOffset(titleOffset) * previewScaleFactor}px`,
             }}
           >
-            {title.toUpperCase()}
+            {showSolution ? `${title.toUpperCase()} - SOLUTION` : title.toUpperCase()}
           </div>
         )}
         {showSubtitle && (
@@ -219,7 +181,7 @@ export const VisualPreview = ({
             {subtitle.toLowerCase()}
           </div>
         )}
-        {showInstruction && (
+        {showInstruction && !showSolution && (
           <div 
             className="text-center mb-4 relative"
             style={{
@@ -237,41 +199,31 @@ export const VisualPreview = ({
               marginTop: `${getVerticalOffset(gridOffset) * previewScaleFactor}px`,
             }}
           >
-            {puzzle.grid.map((row, i) => (
-              <div key={i} className="flex">
-                {row.map((letter, j) => (
-                  <div
-                    key={`${i}-${j}`}
-                    className="flex items-center justify-center border border-gray-300"
-                    style={{
-                      width: `${cellSize * previewScaleFactor}px`,
-                      height: `${cellSize * previewScaleFactor}px`,
-                      fontSize: `${letterSize * previewScaleFactor}px`,
-                      backgroundColor: 'rgba(255,255,255,0.6)', // Reduced opacity to show watermark through
-                    }}
-                  >
-                    {letter}
-                  </div>
-                ))}
-              </div>
-            ))}
+            <CrosswordGridDisplay
+              puzzle={puzzle}
+              cellSize={cellSize}
+              letterSize={letterSize}
+              previewScaleFactor={previewScaleFactor}
+              showSolution={showSolution}
+            />
           </div>
         )}
-        {showWordList && puzzle && puzzle.wordPlacements && puzzle.wordPlacements.length > 0 && (
+        {showWordList && puzzle && (
           <div 
-            className="flex flex-wrap justify-center mt-4 px-2 relative"
+            className="relative"
             style={{
               marginTop: `${getVerticalOffset(wordListOffset) * previewScaleFactor}px`,
               fontSize: `${fontSizes.wordListSize * previewScaleFactor * wordListSizeMultiplier}px`,
-              maxHeight: '140px', // Increased from unspecified
-              overflowY: 'auto'
+              maxHeight: '140px', // Increased from 120px
             }}
           >
-            {puzzle.wordPlacements.map(({ word }, index) => (
-              <span key={index} className="mx-2 px-1 py-0.5 bg-gray-100 rounded-md mb-1">
-                {word}
-              </span>
-            ))}
+            <CrosswordClueList
+              puzzle={puzzle}
+              showSolution={showSolution}
+              fontSizes={fontSizes}
+              wordListSizeMultiplier={wordListSizeMultiplier}
+              previewScaleFactor={previewScaleFactor}
+            />
           </div>
         )}
       </div>

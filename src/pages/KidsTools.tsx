@@ -1,3 +1,4 @@
+
 import { BookOpen, Puzzle, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -66,7 +67,6 @@ const KidsTools = () => {
               description="Create custom crossword puzzles"
               icon={Puzzle}
               href="/crossword"
-              isComingSoon
             />
             <ToolCard
               title="Connect the Dots"

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import KidsTools from "./pages/KidsTools";
 import WordSearch from "./pages/WordSearch";
+import Crossword from "./pages/Crossword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/kids-tools" element={<KidsTools />} />
           <Route path="/word-search" element={<WordSearch />} />
+          <Route path="/crossword" element={<Crossword />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

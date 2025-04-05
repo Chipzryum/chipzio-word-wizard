@@ -8,13 +8,16 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { PuzzleGrid } from "@/utils/wordSearchUtils";
+import { CrosswordGrid } from "@/utils/crosswordUtils";
 import { pdf } from "@react-pdf/renderer";
 import { useToast } from "@/hooks/use-toast";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { VisualPreview } from "./VisualPreview";
+import { CrosswordVisualPreview } from "./CrosswordVisualPreview";
 import { ControlPanel } from "./ControlPanel";
 import { ActionButtons } from "./ActionButtons";
 import { PuzzlePDFPreview } from "./PuzzlePDFPreview";
+import { CrosswordPDFPreview } from "./CrosswordPDFPreview";
 import { 
   PAGE_SIZES, 
   UNITS, 
@@ -46,21 +49,41 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 
+export type CombinedPuzzleGrid = PuzzleGrid | CrosswordGrid;
+
 interface DownloadPuzzleDialogProps {
   open: boolean;
-  onClose: () => void;
-  puzzle: PuzzleGrid | null;
+  onOpenChange: (open: boolean) => void;
+  puzzle: CombinedPuzzleGrid;
+  defaultValues?: {
+    title: string;
+    subtitle: string;
+    instruction: string;
+  };
+  puzzleType?: "wordsearch" | "crossword";
+  showSolution?: boolean;
+  visualPreviewComponent?: "wordsearch" | "crossword";
 }
+
+const MIN_IMAGE_SPACING = 0;
 
 export function DownloadPuzzleDialog({
   open,
-  onClose,
+  onOpenChange,
   puzzle,
+  defaultValues = {
+    title: "Puzzle",
+    subtitle: "educational puzzle",
+    instruction: "Can you solve the puzzle?"
+  },
+  puzzleType = "wordsearch",
+  showSolution = false,
+  visualPreviewComponent = "wordsearch"
 }: DownloadPuzzleDialogProps) {
   
-  const [title, setTitle] = useState("Word Search Puzzle");
-  const [subtitle, setSubtitle] = useState("word search");
-  const [instruction, setInstruction] = useState("Can you find all the words?");
+  const [title, setTitle] = useState(defaultValues.title);
+  const [subtitle, setSubtitle] = useState(defaultValues.subtitle);
+  const [instruction, setInstruction] = useState(defaultValues.instruction);
   const [selectedSize, setSelectedSize] = useState<PageSize>("A4");
   const [selectedUnit, setSelectedUnit] = useState<Unit>("Points");
   const [customWidth, setCustomWidth] = useState(PAGE_SIZES.A4.width);
@@ -97,19 +120,44 @@ export function DownloadPuzzleDialog({
   const [imageOpacity, setImageOpacity] = useState(DEFAULT_IMAGE_OPACITY);
   const [imageGridSize, setImageGridSize] = useState(DEFAULT_IMAGE_GRID_SIZE);
   
+  const [imageAngle, setImageAngle] = useState(0);
+  const [imageSpacing, setImageSpacing] = useState(MIN_IMAGE_SPACING);
+  
   const { toast } = useToast();
   
-  const previewScaleFactor = 0.25;
-
-  const handleRandomizeImages = () => {
-    if (uploadedImages.length > 0) {
-      const shuffledImages = [...uploadedImages].sort(() => Math.random() - 0.5);
-      setUploadedImages(shuffledImages);
-    }
-  };
+  const previewScaleFactor = 0.3;
 
   const handleUnitChange = (unit: Unit) => {
     setSelectedUnit(unit);
+  };
+
+  const togglePositioning = (element: string | null) => {
+    setPositioningElement(element);
+  };
+
+  const moveElement = (element: string, direction: 'up' | 'down') => {
+    const amount = 1;
+    const change = direction === 'up' ? -amount : amount;
+    
+    switch (element) {
+      case 'title':
+        setTitleOffset(prev => prev + change);
+        break;
+      case 'subtitle':
+        setSubtitleOffset(prev => prev + change);
+        break;
+      case 'instruction':
+        setInstructionOffset(prev => prev + change);
+        break;
+      case 'grid':
+        setGridOffset(prev => prev + change);
+        break;
+      case 'wordList':
+        setWordListOffset(prev => prev + change);
+        break;
+      default:
+        break;
+    }
   };
 
   const currentWidth = selectedSize === "Custom" ? customWidth : PAGE_SIZES[selectedSize].width;
@@ -225,37 +273,82 @@ export function DownloadPuzzleDialog({
       const cappedLetterSizeMultiplier = Math.min(letterSizeMultiplier, MAX_LETTER_SIZE);
       console.log("Creating PDF with cappedLetterSizeMultiplier:", cappedLetterSizeMultiplier);
       
-      const blob = await pdf(
-        <PuzzlePDFPreview
-          puzzle={puzzle}
-          title={title}
-          subtitle={subtitle}
-          instruction={instruction}
-          showTitle={showTitle}
-          showSubtitle={showSubtitle}
-          showInstruction={showInstruction}
-          showGrid={showGrid}
-          showWordList={showWordList}
-          titleOffset={titleOffset}
-          subtitleOffset={subtitleOffset}
-          instructionOffset={instructionOffset}
-          gridOffset={gridOffset}
-          wordListOffset={wordListOffset}
-          currentWidth={currentWidth}
-          currentHeight={currentHeight}
-          contentWidth={contentWidth}
-          contentHeight={contentHeight}
-          cellSize={cellSize}
-          letterSizeMultiplier={letterSizeMultiplier}
-          titleSizeMultiplier={titleSizeMultiplier}
-          subtitleSizeMultiplier={subtitleSizeMultiplier}
-          instructionSizeMultiplier={instructionSizeMultiplier}
-          wordListSizeMultiplier={wordListSizeMultiplier}
-          uploadedImages={uploadedImages}
-          imageOpacity={imageOpacity}
-          imageGridSize={imageGridSize}
-        />
-      ).toBlob();
+      let pdfDocument;
+      
+      if (puzzleType === "crossword") {
+        pdfDocument = (
+          <CrosswordPDFPreview
+            puzzle={puzzle as CrosswordGrid}
+            title={title}
+            subtitle={subtitle}
+            instruction={instruction}
+            showTitle={showTitle}
+            showSubtitle={showSubtitle}
+            showInstruction={showInstruction}
+            showGrid={showGrid}
+            showWordList={showWordList}
+            titleOffset={titleOffset}
+            subtitleOffset={subtitleOffset}
+            instructionOffset={instructionOffset}
+            gridOffset={gridOffset}
+            wordListOffset={wordListOffset}
+            currentWidth={currentWidth}
+            currentHeight={currentHeight}
+            contentWidth={contentWidth}
+            contentHeight={contentHeight}
+            cellSize={cellSize}
+            letterSizeMultiplier={letterSizeMultiplier}
+            titleSizeMultiplier={titleSizeMultiplier}
+            subtitleSizeMultiplier={subtitleSizeMultiplier}
+            instructionSizeMultiplier={instructionSizeMultiplier}
+            wordListSizeMultiplier={wordListSizeMultiplier}
+            uploadedImages={uploadedImages}
+            imageOpacity={imageOpacity}
+            imageGridSize={imageGridSize}
+            imageAngle={imageAngle}
+            imageSpacing={imageSpacing}
+            showSolution={false}
+            includeSolution={true}
+          />
+        );
+      } else {
+        pdfDocument = (
+          <PuzzlePDFPreview
+            puzzle={puzzle as PuzzleGrid}
+            title={title}
+            subtitle={subtitle}
+            instruction={instruction}
+            showTitle={showTitle}
+            showSubtitle={showSubtitle}
+            showInstruction={showInstruction}
+            showGrid={showGrid}
+            showWordList={showWordList}
+            titleOffset={titleOffset}
+            subtitleOffset={subtitleOffset}
+            instructionOffset={instructionOffset}
+            gridOffset={gridOffset}
+            wordListOffset={wordListOffset}
+            currentWidth={currentWidth}
+            currentHeight={currentHeight}
+            contentWidth={contentWidth}
+            contentHeight={contentHeight}
+            cellSize={cellSize}
+            letterSizeMultiplier={letterSizeMultiplier}
+            titleSizeMultiplier={titleSizeMultiplier}
+            subtitleSizeMultiplier={subtitleSizeMultiplier}
+            instructionSizeMultiplier={instructionSizeMultiplier}
+            wordListSizeMultiplier={wordListSizeMultiplier}
+            uploadedImages={uploadedImages}
+            imageOpacity={imageOpacity}
+            imageGridSize={imageGridSize}
+            imageAngle={imageAngle}
+            imageSpacing={imageSpacing}
+            includeSolution={true}
+          />
+        );
+      }
+      
+      const blob = await pdf(pdfDocument).toBlob();
       
       console.log("PDF blob generated successfully:", blob);
       setPdfBlob(blob);
@@ -310,7 +403,7 @@ export function DownloadPuzzleDialog({
         description: "PDF downloaded successfully!",
       });
       
-      onClose();
+      onOpenChange(false);
     } catch (error) {
       console.error('Failed to download PDF:', error);
       toast({
@@ -330,6 +423,93 @@ export function DownloadPuzzleDialog({
     return offset > 0 ? `+${offset}` : `${offset}`;
   };
 
+  const renderPreview = () => {
+    if (visualPreviewComponent === "crossword") {
+      return (
+        <CrosswordVisualPreview 
+          puzzle={puzzle as CrosswordGrid}
+          showLivePreview={showLivePreview}
+          isPDFReady={isPDFReady}
+          title={title}
+          subtitle={subtitle}
+          instruction={instruction}
+          showTitle={showTitle}
+          showSubtitle={showSubtitle}
+          showInstruction={showInstruction}
+          showGrid={showGrid}
+          showWordList={showWordList}
+          titleOffset={titleOffset}
+          subtitleOffset={subtitleOffset}
+          instructionOffset={instructionOffset}
+          gridOffset={gridOffset}
+          wordListOffset={wordListOffset}
+          currentWidth={currentWidth}
+          currentHeight={currentHeight}
+          contentWidth={contentWidth}
+          contentHeight={contentHeight}
+          cellSize={cellSize}
+          letterSize={letterSize}
+          letterSizeMultiplier={letterSizeMultiplier}
+          titleSizeMultiplier={titleSizeMultiplier}
+          subtitleSizeMultiplier={subtitleSizeMultiplier}
+          instructionSizeMultiplier={instructionSizeMultiplier}
+          wordListSizeMultiplier={wordListSizeMultiplier}
+          previewScaleFactor={previewScaleFactor}
+          fontSizes={fontSizes}
+          getVerticalOffset={getVerticalOffset}
+          uploadedImages={uploadedImages}
+          imageOpacity={imageOpacity}
+          imageGridSize={imageGridSize}
+          imageAngle={imageAngle}
+          imageSpacing={imageSpacing}
+          showSolution={showSolution}
+          includeSolution={true}
+        />
+      );
+    } else {
+      return (
+        <VisualPreview 
+          puzzle={puzzle as PuzzleGrid}
+          showLivePreview={showLivePreview}
+          isPDFReady={isPDFReady}
+          title={title}
+          subtitle={subtitle}
+          instruction={instruction}
+          showTitle={showTitle}
+          showSubtitle={showSubtitle}
+          showInstruction={showInstruction}
+          showGrid={showGrid}
+          showWordList={showWordList}
+          titleOffset={titleOffset}
+          subtitleOffset={subtitleOffset}
+          instructionOffset={instructionOffset}
+          gridOffset={gridOffset}
+          wordListOffset={wordListOffset}
+          currentWidth={currentWidth}
+          currentHeight={currentHeight}
+          contentWidth={contentWidth}
+          contentHeight={contentHeight}
+          cellSize={cellSize}
+          letterSize={letterSize}
+          letterSizeMultiplier={letterSizeMultiplier}
+          titleSizeMultiplier={titleSizeMultiplier}
+          subtitleSizeMultiplier={subtitleSizeMultiplier}
+          instructionSizeMultiplier={instructionSizeMultiplier}
+          wordListSizeMultiplier={wordListSizeMultiplier}
+          previewScaleFactor={previewScaleFactor}
+          fontSizes={fontSizes}
+          getVerticalOffset={getVerticalOffset}
+          uploadedImages={uploadedImages}
+          imageOpacity={imageOpacity}
+          imageGridSize={imageGridSize}
+          imageAngle={imageAngle}
+          imageSpacing={imageSpacing}
+          includeSolution={true}
+        />
+      );
+    }
+  };
+
   useEffect(() => {
     setIsPDFReady(false);
     setShowLivePreview(false);
@@ -339,13 +519,13 @@ export function DownloadPuzzleDialog({
     showTitle, showSubtitle, showInstruction, showWordList, showGrid,
     titleOffset, subtitleOffset, instructionOffset, gridOffset, wordListOffset,
     title, subtitle, instruction, selectedSize, customWidth, customHeight,
-    uploadedImages, imageOpacity, imageGridSize
+    uploadedImages, imageOpacity, imageGridSize, imageAngle, imageSpacing
   ]);
 
   console.log("Word list toggle status:", showWordList);
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Download Puzzle</DialogTitle>
@@ -422,64 +602,19 @@ export function DownloadPuzzleDialog({
                 onImagesChange={setUploadedImages}
                 imageOpacity={imageOpacity}
                 setImageOpacity={setImageOpacity}
-                onRandomizeImages={handleRandomizeImages}
+                imageGridSize={imageGridSize}
+                setImageGridSize={setImageGridSize}
+                imageAngle={imageAngle}
+                setImageAngle={setImageAngle}
+                imageSpacing={imageSpacing}
+                setImageSpacing={setImageSpacing}
               />
             </div>
 
             <div className="space-y-4">
               <Label>Preview</Label>
               <div className="border rounded-lg p-4 bg-white h-[430px] flex flex-col items-center justify-center overflow-y-auto relative">
-                {uploadedImages.length > 0 && (
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div 
-                      className="w-full h-full"
-                      style={{
-                        backgroundImage: uploadedImages.length > 0 
-                          ? `url(${uploadedImages[0]})` 
-                          : 'none',
-                        backgroundSize: `${imageGridSize}px ${imageGridSize}px`,
-                        backgroundRepeat: 'repeat',
-                        opacity: imageOpacity,
-                      }}
-                    />
-                  </div>
-                )}
-                
-                <VisualPreview 
-                  puzzle={puzzle}
-                  showLivePreview={showLivePreview}
-                  isPDFReady={isPDFReady}
-                  title={title}
-                  subtitle={subtitle}
-                  instruction={instruction}
-                  showTitle={showTitle}
-                  showSubtitle={showSubtitle}
-                  showInstruction={showInstruction}
-                  showGrid={showGrid}
-                  showWordList={showWordList}
-                  titleOffset={titleOffset}
-                  subtitleOffset={subtitleOffset}
-                  instructionOffset={instructionOffset}
-                  gridOffset={gridOffset}
-                  wordListOffset={wordListOffset}
-                  currentWidth={currentWidth}
-                  currentHeight={currentHeight}
-                  contentWidth={contentWidth}
-                  contentHeight={contentHeight}
-                  cellSize={cellSize}
-                  letterSize={letterSize}
-                  letterSizeMultiplier={letterSizeMultiplier}
-                  titleSizeMultiplier={titleSizeMultiplier}
-                  subtitleSizeMultiplier={subtitleSizeMultiplier}
-                  instructionSizeMultiplier={instructionSizeMultiplier}
-                  wordListSizeMultiplier={wordListSizeMultiplier}
-                  previewScaleFactor={previewScaleFactor}
-                  fontSizes={fontSizes}
-                  getVerticalOffset={getVerticalOffset}
-                  uploadedImages={uploadedImages}
-                  imageOpacity={imageOpacity}
-                  imageGridSize={imageGridSize}
-                />
+                {renderPreview()}
               </div>
               
               <ActionButtons 
@@ -664,57 +799,7 @@ export function DownloadPuzzleDialog({
             <div className="space-y-4">
               <Label>Preview</Label>
               <div className="border rounded-lg p-4 bg-white h-[430px] flex flex-col items-center justify-center overflow-y-auto relative">
-                {uploadedImages.length > 0 && (
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div 
-                      className="w-full h-full"
-                      style={{
-                        backgroundImage: uploadedImages.length > 0 
-                          ? `url(${uploadedImages[0]})` 
-                          : 'none',
-                        backgroundSize: `${imageGridSize}px ${imageGridSize}px`,
-                        backgroundRepeat: 'repeat',
-                        opacity: imageOpacity,
-                      }}
-                    />
-                  </div>
-                )}
-                
-                <VisualPreview 
-                  puzzle={puzzle}
-                  showLivePreview={showLivePreview}
-                  isPDFReady={isPDFReady}
-                  title={title}
-                  subtitle={subtitle}
-                  instruction={instruction}
-                  showTitle={showTitle}
-                  showSubtitle={showSubtitle}
-                  showInstruction={showInstruction}
-                  showGrid={showGrid}
-                  showWordList={showWordList}
-                  titleOffset={titleOffset}
-                  subtitleOffset={subtitleOffset}
-                  instructionOffset={instructionOffset}
-                  gridOffset={gridOffset}
-                  wordListOffset={wordListOffset}
-                  currentWidth={currentWidth}
-                  currentHeight={currentHeight}
-                  contentWidth={contentWidth}
-                  contentHeight={contentHeight}
-                  cellSize={cellSize}
-                  letterSize={letterSize}
-                  letterSizeMultiplier={letterSizeMultiplier}
-                  titleSizeMultiplier={titleSizeMultiplier}
-                  subtitleSizeMultiplier={subtitleSizeMultiplier}
-                  instructionSizeMultiplier={instructionSizeMultiplier}
-                  wordListSizeMultiplier={wordListSizeMultiplier}
-                  previewScaleFactor={previewScaleFactor}
-                  fontSizes={fontSizes}
-                  getVerticalOffset={getVerticalOffset}
-                  uploadedImages={uploadedImages}
-                  imageOpacity={imageOpacity}
-                  imageGridSize={imageGridSize}
-                />
+                {renderPreview()}
               </div>
               
               <ActionButtons 
@@ -856,57 +941,7 @@ export function DownloadPuzzleDialog({
             <div className="space-y-4">
               <Label>Preview</Label>
               <div className="border rounded-lg p-4 bg-white h-[430px] flex flex-col items-center justify-center overflow-y-auto relative">
-                {uploadedImages.length > 0 && (
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div 
-                      className="w-full h-full"
-                      style={{
-                        backgroundImage: uploadedImages.length > 0 
-                          ? `url(${uploadedImages[0]})` 
-                          : 'none',
-                        backgroundSize: `${imageGridSize}px ${imageGridSize}px`,
-                        backgroundRepeat: 'repeat',
-                        opacity: imageOpacity,
-                      }}
-                    />
-                  </div>
-                )}
-                
-                <VisualPreview 
-                  puzzle={puzzle}
-                  showLivePreview={showLivePreview}
-                  isPDFReady={isPDFReady}
-                  title={title}
-                  subtitle={subtitle}
-                  instruction={instruction}
-                  showTitle={showTitle}
-                  showSubtitle={showSubtitle}
-                  showInstruction={showInstruction}
-                  showGrid={showGrid}
-                  showWordList={showWordList}
-                  titleOffset={titleOffset}
-                  subtitleOffset={subtitleOffset}
-                  instructionOffset={instructionOffset}
-                  gridOffset={gridOffset}
-                  wordListOffset={wordListOffset}
-                  currentWidth={currentWidth}
-                  currentHeight={currentHeight}
-                  contentWidth={contentWidth}
-                  contentHeight={contentHeight}
-                  cellSize={cellSize}
-                  letterSize={letterSize}
-                  letterSizeMultiplier={letterSizeMultiplier}
-                  titleSizeMultiplier={titleSizeMultiplier}
-                  subtitleSizeMultiplier={subtitleSizeMultiplier}
-                  instructionSizeMultiplier={instructionSizeMultiplier}
-                  wordListSizeMultiplier={wordListSizeMultiplier}
-                  previewScaleFactor={previewScaleFactor}
-                  fontSizes={fontSizes}
-                  getVerticalOffset={getVerticalOffset}
-                  uploadedImages={uploadedImages}
-                  imageOpacity={imageOpacity}
-                  imageGridSize={imageGridSize}
-                />
+                {renderPreview()}
               </div>
               
               <ActionButtons 
@@ -938,137 +973,112 @@ export function DownloadPuzzleDialog({
                           newImages.splice(index, 1);
                           setUploadedImages(newImages);
                         }}
-                        className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center rounded-bl"
+                        className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center rounded-full text-xs"
                       >
                         ×
                       </button>
                     </div>
                   ))}
-                  <label className="w-12 h-12 border-2 border-dashed rounded flex items-center justify-center cursor-pointer hover:bg-secondary/30">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const file = e.target.files[0];
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            if (event.target && typeof event.target.result === 'string') {
-                              setUploadedImages([...uploadedImages, event.target.result]);
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                    +
-                  </label>
                 </div>
-                
-                {uploadedImages.length > 0 && (
-                  <button
-                    onClick={handleRandomizeImages}
-                    className="mt-2 w-full py-1 px-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-md text-sm"
-                  >
-                    Randomize Images
-                  </button>
-                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        if (event.target?.result) {
+                          setUploadedImages([...uploadedImages, event.target.result as string]);
+                        }
+                      };
+                      reader.readAsDataURL(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full mb-4"
+                />
               </div>
-
+              
               {uploadedImages.length > 0 && (
                 <>
                   <div className="glass-card rounded-lg p-4 bg-white/50 border shadow-sm">
                     <div className="grid gap-2">
-                      <div className="flex justify-between items-center">
-                        <Label className="font-medium">Image Opacity</Label>
-                        <span className="text-xs">{(imageOpacity * 100).toFixed(0)}%</span>
-                      </div>
+                      <Label className="font-medium">Image Opacity</Label>
                       <Slider
                         value={[imageOpacity * 100]}
-                        min={10}
+                        min={5}
                         max={100}
                         step={1}
                         onValueChange={(value) => setImageOpacity(value[0] / 100)}
-                        className="cursor-pointer"
                       />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>5%</span>
+                        <span>{Math.round(imageOpacity * 100)}%</span>
+                        <span>100%</span>
+                      </div>
                     </div>
                   </div>
-
+                  
                   <div className="glass-card rounded-lg p-4 bg-white/50 border shadow-sm">
                     <div className="grid gap-2">
-                      <div className="flex justify-between items-center">
-                        <Label className="font-medium">Image Size</Label>
-                        <span className="text-xs">{imageGridSize}px</span>
-                      </div>
+                      <Label className="font-medium">Image Size</Label>
                       <Slider
                         value={[imageGridSize]}
                         min={MIN_IMAGE_GRID_SIZE}
                         max={MAX_IMAGE_GRID_SIZE}
                         step={1}
                         onValueChange={(value) => setImageGridSize(value[0])}
-                        className="cursor-pointer"
                       />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Small</span>
+                        <span>{imageGridSize}</span>
+                        <span>Large</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="glass-card rounded-lg p-4 bg-white/50 border shadow-sm">
+                    <div className="grid gap-2">
+                      <Label className="font-medium">Image Angle</Label>
+                      <Slider
+                        value={[imageAngle]}
+                        min={0}
+                        max={90}
+                        step={5}
+                        onValueChange={(value) => setImageAngle(value[0])}
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>0°</span>
+                        <span>{imageAngle}°</span>
+                        <span>90°</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="glass-card rounded-lg p-4 bg-white/50 border shadow-sm">
+                    <div className="grid gap-2">
+                      <Label className="font-medium">Image Spacing</Label>
+                      <Slider
+                        value={[imageSpacing]}
+                        min={0}
+                        max={50}
+                        step={2}
+                        onValueChange={(value) => setImageSpacing(value[0])}
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>None</span>
+                        <span>{imageSpacing}px</span>
+                        <span>Max</span>
+                      </div>
                     </div>
                   </div>
                 </>
               )}
             </div>
-
+            
             <div className="space-y-4">
               <Label>Preview</Label>
               <div className="border rounded-lg p-4 bg-white h-[430px] flex flex-col items-center justify-center overflow-y-auto relative">
-                {uploadedImages.length > 0 && (
-                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                    <div 
-                      className="w-full h-full"
-                      style={{
-                        backgroundImage: uploadedImages.length > 0 
-                          ? `url(${uploadedImages[0]})` 
-                          : 'none',
-                        backgroundSize: `${imageGridSize}px ${imageGridSize}px`,
-                        backgroundRepeat: 'repeat',
-                        opacity: imageOpacity,
-                      }}
-                    />
-                  </div>
-                )}
-                
-                <VisualPreview 
-                  puzzle={puzzle}
-                  showLivePreview={showLivePreview}
-                  isPDFReady={isPDFReady}
-                  title={title}
-                  subtitle={subtitle}
-                  instruction={instruction}
-                  showTitle={showTitle}
-                  showSubtitle={showSubtitle}
-                  showInstruction={showInstruction}
-                  showGrid={showGrid}
-                  showWordList={showWordList}
-                  titleOffset={titleOffset}
-                  subtitleOffset={subtitleOffset}
-                  instructionOffset={instructionOffset}
-                  gridOffset={gridOffset}
-                  wordListOffset={wordListOffset}
-                  currentWidth={currentWidth}
-                  currentHeight={currentHeight}
-                  contentWidth={contentWidth}
-                  contentHeight={contentHeight}
-                  cellSize={cellSize}
-                  letterSize={letterSize}
-                  letterSizeMultiplier={letterSizeMultiplier}
-                  titleSizeMultiplier={titleSizeMultiplier}
-                  subtitleSizeMultiplier={subtitleSizeMultiplier}
-                  instructionSizeMultiplier={instructionSizeMultiplier}
-                  wordListSizeMultiplier={wordListSizeMultiplier}
-                  previewScaleFactor={previewScaleFactor}
-                  fontSizes={fontSizes}
-                  getVerticalOffset={getVerticalOffset}
-                  uploadedImages={uploadedImages}
-                  imageOpacity={imageOpacity}
-                  imageGridSize={imageGridSize}
-                />
+                {renderPreview()}
               </div>
               
               <ActionButtons 
@@ -1086,11 +1096,3 @@ export function DownloadPuzzleDialog({
     </Dialog>
   );
 }
-
-const moveElement = (element: string, direction: 'up' | 'down') => {
-  return;
-};
-
-const togglePositioning = (element: string) => {
-  return;
-};

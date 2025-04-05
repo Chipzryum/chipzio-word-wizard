@@ -38,6 +38,8 @@ export const DEFAULT_VALUES = {
   gridOffset: 0,
   wordListOffset: 0,
   imageGridSize: 100, // Default grid image size in pixels
+  imageAngle: 0, // Default angle for image pattern
+  imageSpacing: 0, // Default spacing between images
 };
 
 // Default multiplier values
@@ -54,6 +56,16 @@ export const MIN_IMAGE_GRID_SIZE = 50; // Minimum size in pixels
 export const MAX_IMAGE_GRID_SIZE = 200; // Maximum size in pixels
 export const DEFAULT_IMAGE_GRID_SIZE = 100; // Default size in pixels
 export const DEFAULT_IMAGE_OPACITY = 0.3; // Default opacity
+
+// Pattern angle constants
+export const MIN_PATTERN_ANGLE = 0;
+export const MAX_PATTERN_ANGLE = 45;
+export const DEFAULT_PATTERN_ANGLE = 0;
+
+// Image spacing constants
+export const MIN_IMAGE_SPACING = 0;
+export const MAX_IMAGE_SPACING = 100;
+export const DEFAULT_IMAGE_SPACING = 0;
 
 // Standard page size options for UI dropdowns
 export const PAGE_SIZE_OPTIONS = [

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -6,7 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Trash2, Upload, Shuffle, Info } from "lucide-react";
+import { Trash2, Upload, Info } from "lucide-react";
 import { 
   Select, 
   SelectContent, 
@@ -20,7 +19,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { PAGE_SIZES, PAGE_SIZE_OPTIONS, DEFAULT_VALUES, MAX_MULTIPLIERS, Unit } from "./constants";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { 
+  PAGE_SIZES, 
+  PAGE_SIZE_OPTIONS, 
+  DEFAULT_VALUES, 
+  MAX_MULTIPLIERS, 
+  Unit,
+  MIN_PATTERN_ANGLE,
+  MAX_PATTERN_ANGLE,
+  MIN_IMAGE_SPACING,
+  MAX_IMAGE_SPACING
+} from "./constants";
 
 interface ControlPanelProps {
   title: string;
@@ -94,7 +108,12 @@ interface ControlPanelProps {
   onImagesChange: (images: string[]) => void;
   imageOpacity: number;
   setImageOpacity: (value: number) => void;
-  onRandomizeImages: () => void;
+  imageGridSize: number;
+  setImageGridSize: (value: number) => void;
+  imageAngle: number;
+  setImageAngle: (value: number) => void;
+  imageSpacing: number;
+  setImageSpacing: (value: number) => void;
 }
 
 export const ControlPanel = ({
@@ -148,7 +167,12 @@ export const ControlPanel = ({
   onImagesChange,
   imageOpacity,
   setImageOpacity,
-  onRandomizeImages
+  imageGridSize,
+  setImageGridSize,
+  imageAngle,
+  setImageAngle,
+  imageSpacing,
+  setImageSpacing
 }: ControlPanelProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -260,7 +284,7 @@ export const ControlPanel = ({
         </div>
 
         <Separator />
-
+        
         <div className="grid gap-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="show-grid">Show Grid</Label>
@@ -282,6 +306,133 @@ export const ControlPanel = ({
             />
           </div>
         </div>
+        
+        <Separator />
+        
+        <Collapsible className="w-full">
+          <CollapsibleTrigger className="w-full flex items-center justify-between py-2">
+            <span className="font-medium">Background Image</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 mt-2">
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label>Upload Image</Label>
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    multiple
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={triggerFileInput}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload
+                  </Button>
+                </div>
+              </div>
+              
+              {uploadedImages.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  <div className="flex flex-wrap gap-2">
+                    {uploadedImages.map((src, index) => (
+                      <div key={index} className="relative group h-16 w-16 border rounded overflow-hidden">
+                        <img 
+                          src={src} 
+                          alt={`Uploaded ${index + 1}`} 
+                          className="h-full w-full object-cover"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-0 right-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeImage(index)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {uploadedImages.length > 0 && (
+                    <>
+                      <div className="grid gap-2 mt-4">
+                        <div className="flex justify-between items-center">
+                          <Label>Opacity</Label>
+                          <span className="text-xs text-slate-500">
+                            {Math.round(imageOpacity * 100)}%
+                          </span>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={[imageOpacity]}
+                          onValueChange={(value) => setImageOpacity(value[0])}
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2 mt-4">
+                        <div className="flex justify-between items-center">
+                          <Label>Pattern Size</Label>
+                          <span className="text-xs text-slate-500">
+                            {imageGridSize}px
+                          </span>
+                        </div>
+                        <Slider
+                          min={50}
+                          max={200}
+                          step={10}
+                          value={[imageGridSize]}
+                          onValueChange={(value) => setImageGridSize(value[0])}
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2 mt-4">
+                        <div className="flex justify-between items-center">
+                          <Label>Pattern Angle</Label>
+                          <span className="text-xs text-slate-500">
+                            {imageAngle}°
+                          </span>
+                        </div>
+                        <Slider
+                          min={MIN_PATTERN_ANGLE}
+                          max={MAX_PATTERN_ANGLE}
+                          step={5}
+                          value={[imageAngle]}
+                          onValueChange={(value) => setImageAngle(value[0])}
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2 mt-4">
+                        <div className="flex justify-between items-center">
+                          <Label>Image Spacing</Label>
+                          <span className="text-xs text-slate-500">
+                            {imageSpacing}px
+                          </span>
+                        </div>
+                        <Slider
+                          min={MIN_IMAGE_SPACING}
+                          max={MAX_IMAGE_SPACING}
+                          step={5}
+                          value={[imageSpacing]}
+                          onValueChange={(value) => setImageSpacing(value[0])}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );
