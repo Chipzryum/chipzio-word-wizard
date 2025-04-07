@@ -154,8 +154,25 @@ export const PuzzlePDFPreview = ({
     );
   };
   
+  // Determine if a cell is part of a word in a specific direction
+  const isPartOfWordInDirection = (x: number, y: number, wordPlacement: any, direction: { x: number, y: number }) => {
+    if (wordPlacement.direction.x !== direction.x || wordPlacement.direction.y !== direction.y) {
+      return false;
+    }
+    
+    const { startPos, length } = wordPlacement;
+    for (let i = 0; i < length; i++) {
+      const checkX = startPos.x + (direction.x * i);
+      const checkY = startPos.y + (direction.y * i);
+      if (checkX === x && checkY === y) {
+        return true;
+      }
+    }
+    return false;
+  };
+  
   // Create a puzzle page with the given showSolution setting and puzzle
-  const createPuzzlePage = (puzzleToRender: CombinedPuzzleGrid, index: number, showSolution: boolean) => (
+  const createPuzzlePage = (puzzleToRender: CombinedPuzzleGrid, index: number, showSolution: boolean, pageNumber: number) => (
     <Page key={`${index}-${showSolution ? 'solution' : 'puzzle'}`} size={[currentWidth, currentHeight]} style={pdfStyles.page} wrap={false}>
       {/* Tiled background pattern */}
       {uploadedImages && uploadedImages.length > 0 && createTiledBackground()}
@@ -165,9 +182,9 @@ export const PuzzlePDFPreview = ({
           <View style={[pdfStyles.titleContainer, {marginTop: getVerticalOffset(titleOffset)}]}>
             <Text style={pdfStyles.title}>
               {showSolution 
-                ? `${title.toUpperCase()} - PAGE ${index + 1} SOLUTION` 
+                ? `${title.toUpperCase()} - SOLUTION` 
                 : puzzlesToRender.length > 1 
-                  ? `${title.toUpperCase()} - PAGE ${index + 1}` 
+                  ? `${title.toUpperCase()}` 
                   : title.toUpperCase()}
             </Text>
           </View>
@@ -193,8 +210,44 @@ export const PuzzlePDFPreview = ({
                   {row.map((cell, j) => (
                     <View key={`${i}-${j}`} style={pdfStyles.cell}>
                       <Text style={pdfStyles.letter}>
-                        {showSolution ? cell : (cell && cell !== ' ' ? cell : '')}
+                        {cell && cell !== ' ' ? cell : ''}
                       </Text>
+                      
+                      {/* Add solution highlighting if this is a solution page */}
+                      {showSolution && cell && cell !== ' ' && puzzleToRender.wordPlacements.some(wp => {
+                        // Check if this cell is part of a word placement
+                        return isPartOfWord(j, i, wp);
+                      }) && (
+                        <>
+                          {/* Horizontal line for horizontal words */}
+                          {puzzleToRender.wordPlacements.some(wp => 
+                            isPartOfWordInDirection(j, i, wp, { x: 1, y: 0 })
+                          ) && (
+                            <View style={[pdfStyles.solutionLine, pdfStyles.horizontalLine]} />
+                          )}
+                          
+                          {/* Vertical line for vertical words */}
+                          {puzzleToRender.wordPlacements.some(wp => 
+                            isPartOfWordInDirection(j, i, wp, { x: 0, y: 1 })
+                          ) && (
+                            <View style={[pdfStyles.solutionLine, pdfStyles.verticalLine]} />
+                          )}
+                          
+                          {/* Diagonal line (top-left to bottom-right) */}
+                          {puzzleToRender.wordPlacements.some(wp => 
+                            isPartOfWordInDirection(j, i, wp, { x: 1, y: 1 })
+                          ) && (
+                            <View style={[pdfStyles.solutionLine, pdfStyles.diagonalLineDown]} />
+                          )}
+                          
+                          {/* Diagonal line (bottom-left to top-right) */}
+                          {puzzleToRender.wordPlacements.some(wp => 
+                            isPartOfWordInDirection(j, i, wp, { x: 1, y: -1 })
+                          ) && (
+                            <View style={[pdfStyles.solutionLine, pdfStyles.diagonalLineUp]} />
+                          )}
+                        </>
+                      )}
                     </View>
                   ))}
                 </View>
@@ -213,19 +266,23 @@ export const PuzzlePDFPreview = ({
           </View>
         )}
       </View>
+      
+      {/* Page number */}
+      <Text style={pdfStyles.pageNumber}>Page {pageNumber}</Text>
     </Page>
   );
   
   // Create all pages
   const pages = [];
+  let pageCounter = 1;
   
   // Add all puzzles
   for (let i = 0; i < puzzlesToRender.length; i++) {
-    pages.push(createPuzzlePage(puzzlesToRender[i], i, false));
+    pages.push(createPuzzlePage(puzzlesToRender[i], i, false, pageCounter++));
     
     // Add solution pages if requested
     if (includeSolution) {
-      pages.push(createPuzzlePage(puzzlesToRender[i], i, true));
+      pages.push(createPuzzlePage(puzzlesToRender[i], i, true, pageCounter++));
     }
   }
   
@@ -330,11 +387,13 @@ export const PuzzlePDFPreview = ({
         backgroundColor: 'rgba(255, 255, 255, 0.6)',
         borderWidth: 0.5,
         borderColor: '#d1d5db',
+        position: 'relative',
       },
       letter: {
         textAlign: 'center',
         alignSelf: 'center',
         fontSize: letterSize,
+        zIndex: 3,
       },
       wordList: {
         display: 'flex',
@@ -350,6 +409,44 @@ export const PuzzlePDFPreview = ({
         padding: 4,
         borderRadius: 4,
       },
+      solutionLine: {
+        position: 'absolute',
+        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+        zIndex: 2,
+      },
+      horizontalLine: {
+        height: 2,
+        left: 0,
+        right: 0,
+        top: '50%',
+      },
+      verticalLine: {
+        width: 2,
+        top: 0,
+        bottom: 0,
+        left: '50%',
+      },
+      diagonalLineDown: {
+        height: 2,
+        width: '140%',
+        left: '-20%',
+        top: '50%',
+        transform: 'rotate(45deg)',
+      },
+      diagonalLineUp: {
+        height: 2,
+        width: '140%',
+        left: '-20%',
+        top: '50%',
+        transform: 'rotate(-45deg)',
+      },
+      pageNumber: {
+        position: 'absolute',
+        bottom: 30,
+        right: 40,
+        fontSize: 10,
+        color: '#666',
+      },
     });
   }
 
@@ -358,5 +455,18 @@ export const PuzzlePDFPreview = ({
     // Each unit is 10 points, limit to prevent going off page
     const maxAllowedOffset = Math.min(5, (contentHeight / 6) / 10);
     return Math.max(-maxAllowedOffset, Math.min(offset * 10, maxAllowedOffset * 10));
+  }
+  
+  // Helper function to check if a cell is part of a word
+  function isPartOfWord(x: number, y: number, placement: any): boolean {
+    const { startPos, direction, length } = placement;
+    for (let i = 0; i < length; i++) {
+      const checkX = startPos.x + (direction.x * i);
+      const checkY = startPos.y + (direction.y * i);
+      if (checkX === x && checkY === y) {
+        return true;
+      }
+    }
+    return false;
   }
 };

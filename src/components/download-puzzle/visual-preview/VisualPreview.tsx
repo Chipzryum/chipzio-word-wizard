@@ -129,9 +129,6 @@ export const VisualPreview = ({
     );
   }
 
-  console.log("Rendering VisualPreview with showWordList:", showWordList);
-  console.log("Puzzle words:", puzzle?.wordPlacements.map(wp => wp.word));
-
   // Set dimensions to maintain A4 aspect ratio
   const a4AspectRatio = 1 / Math.sqrt(2); // Approximately 0.7071 (standard ISO 216)
   const scaledWidth = currentWidth * previewScaleFactor;
@@ -181,6 +178,7 @@ export const VisualPreview = ({
             instructionSizeMultiplier={instructionSizeMultiplier}
             wordListSizeMultiplier={wordListSizeMultiplier}
             cellSize={cellSize}
+            showSolution={puzzle.isAnswer || false}
           />
         </PreviewImageBackground>
       )}

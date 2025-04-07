@@ -287,10 +287,25 @@ export const CrosswordPDFPreview = ({
       fontSize: fontSizes.wordListSize,
       marginBottom: 3,
     },
+    solutionHighlight: {
+      position: 'absolute',
+      backgroundColor: 'rgba(239, 68, 68, 0.3)',
+      width: '100%',
+      height: '2px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+    },
+    pageNumber: {
+      position: 'absolute',
+      bottom: 30,
+      right: 40,
+      fontSize: 10,
+      color: '#666',
+    },
   });
 
   // Create a puzzle page with the given showSolution setting and puzzle
-  const createPuzzlePage = (puzzleToRender: CrosswordGrid, index: number, showSolution: boolean) => (
+  const createPuzzlePage = (puzzleToRender: CrosswordGrid, index: number, showSolution: boolean, pageNumber: number) => (
     <Page key={`${index}-${showSolution ? 'solution' : 'puzzle'}`} size={[currentWidth, currentHeight]} style={styles.page} wrap={false}>
       {/* Tiled background pattern */}
       {uploadedImages && uploadedImages.length > 0 && createTiledBackground()}
@@ -300,9 +315,9 @@ export const CrosswordPDFPreview = ({
           <View style={[styles.titleContainer, {marginTop: getVerticalOffset(titleOffset)}]}>
             <Text style={styles.title}>
               {showSolution 
-                ? `${title.toUpperCase()} - PAGE ${index + 1} SOLUTION` 
+                ? `${title.toUpperCase()} - SOLUTION` 
                 : puzzlesToRender.length > 1 
-                  ? `${title.toUpperCase()} - PAGE ${index + 1}` 
+                  ? `${title.toUpperCase()}` 
                   : title.toUpperCase()}
             </Text>
           </View>
@@ -340,6 +355,10 @@ export const CrosswordPDFPreview = ({
                         <Text style={styles.letter}>
                           {showSolution ? cellData.letter : ''}
                         </Text>
+                        {/* Add red line for solution pages */}
+                        {showSolution && cellData.letter && (
+                          <View style={styles.solutionHighlight} />
+                        )}
                       </View>
                     );
                   })}
@@ -373,19 +392,23 @@ export const CrosswordPDFPreview = ({
           </View>
         )}
       </View>
+      
+      {/* Page number */}
+      <Text style={styles.pageNumber}>Page {pageNumber}</Text>
     </Page>
   );
 
   // Create all pages
   const pages = [];
+  let pageCounter = 1;
   
   // Add all puzzles
   for (let i = 0; i < puzzlesToRender.length; i++) {
-    pages.push(createPuzzlePage(puzzlesToRender[i], i, false));
+    pages.push(createPuzzlePage(puzzlesToRender[i], i, false, pageCounter++));
     
     // Add solution pages if requested
     if (includeSolution) {
-      pages.push(createPuzzlePage(puzzlesToRender[i], i, true));
+      pages.push(createPuzzlePage(puzzlesToRender[i], i, true, pageCounter++));
     }
   }
   
