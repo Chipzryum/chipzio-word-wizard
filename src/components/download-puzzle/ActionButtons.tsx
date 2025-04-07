@@ -38,7 +38,7 @@ export const ActionButtons = ({
         disabled={!isPDFReady || !pdfBlob}
       >
         <Download className="h-4 w-4" />
-        Download PDF with Solution
+        Download
       </Button>
     </div>
   );

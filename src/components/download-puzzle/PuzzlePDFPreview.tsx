@@ -1,9 +1,11 @@
+
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import { PuzzleGrid } from "@/utils/wordSearchUtils";
 import { CombinedPuzzleGrid } from "./DownloadPuzzleDialog";
 
 interface PuzzlePDFPreviewProps {
   puzzle: CombinedPuzzleGrid | null;
+  allPuzzles?: CombinedPuzzleGrid[];
   title: string;
   subtitle: string;
   instruction: string;
@@ -37,6 +39,7 @@ interface PuzzlePDFPreviewProps {
 
 export const PuzzlePDFPreview = ({
   puzzle,
+  allPuzzles = [],
   title,
   subtitle,
   instruction,
@@ -68,6 +71,9 @@ export const PuzzlePDFPreview = ({
   includeSolution = true,
 }: PuzzlePDFPreviewProps) => {
   if (!puzzle) return null;
+  
+  // Determine which puzzles to render
+  const puzzlesToRender = allPuzzles && allPuzzles.length > 0 ? allPuzzles : [puzzle];
   
   // Calculate font sizes based on page dimensions and multipliers
   const calculateFontSizes = () => {
@@ -148,9 +154,9 @@ export const PuzzlePDFPreview = ({
     );
   };
   
-  // Create a puzzle page with the given showSolution setting
-  const createPuzzlePage = (showSolution: boolean) => (
-    <Page size={[currentWidth, currentHeight]} style={pdfStyles.page} wrap={false}>
+  // Create a puzzle page with the given showSolution setting and puzzle
+  const createPuzzlePage = (puzzleToRender: CombinedPuzzleGrid, index: number, showSolution: boolean) => (
+    <Page key={`${index}-${showSolution ? 'solution' : 'puzzle'}`} size={[currentWidth, currentHeight]} style={pdfStyles.page} wrap={false}>
       {/* Tiled background pattern */}
       {uploadedImages && uploadedImages.length > 0 && createTiledBackground()}
       
@@ -158,7 +164,11 @@ export const PuzzlePDFPreview = ({
         {showTitle && (
           <View style={[pdfStyles.titleContainer, {marginTop: getVerticalOffset(titleOffset)}]}>
             <Text style={pdfStyles.title}>
-              {showSolution ? `${title.toUpperCase()} - SOLUTION` : title.toUpperCase()}
+              {showSolution 
+                ? `${title.toUpperCase()} - PAGE ${index + 1} SOLUTION` 
+                : puzzlesToRender.length > 1 
+                  ? `${title.toUpperCase()} - PAGE ${index + 1}` 
+                  : title.toUpperCase()}
             </Text>
           </View>
         )}
@@ -178,7 +188,7 @@ export const PuzzlePDFPreview = ({
         {showGrid && (
           <View style={[pdfStyles.gridContainer, {marginTop: getVerticalOffset(gridOffset)}]}>
             <View style={pdfStyles.grid}>
-              {puzzle.grid.map((row, i) => (
+              {puzzleToRender.grid.map((row, i) => (
                 <View key={i} style={pdfStyles.row}>
                   {row.map((cell, j) => (
                     <View key={`${i}-${j}`} style={pdfStyles.cell}>
@@ -196,7 +206,7 @@ export const PuzzlePDFPreview = ({
         {showWordList && (
           <View style={[pdfStyles.wordListContainer, {marginTop: getVerticalOffset(wordListOffset)}]}>
             <View style={pdfStyles.wordList}>
-              {puzzle.wordPlacements.map(({ word }, index) => (
+              {puzzleToRender.wordPlacements.map(({ word }, index) => (
                 <Text key={index} style={pdfStyles.wordItem}>{word.toLowerCase()}</Text>
               ))}
             </View>
@@ -206,11 +216,22 @@ export const PuzzlePDFPreview = ({
     </Page>
   );
   
-  // Ensure we're creating either one or two pages based on the includeSolution flag
+  // Create all pages
+  const pages = [];
+  
+  // Add all puzzles
+  for (let i = 0; i < puzzlesToRender.length; i++) {
+    pages.push(createPuzzlePage(puzzlesToRender[i], i, false));
+    
+    // Add solution pages if requested
+    if (includeSolution) {
+      pages.push(createPuzzlePage(puzzlesToRender[i], i, true));
+    }
+  }
+  
   return (
     <Document>
-      {createPuzzlePage(false)}
-      {includeSolution && createPuzzlePage(true)}
+      {pages}
     </Document>
   );
 

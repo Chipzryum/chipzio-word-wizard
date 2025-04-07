@@ -4,6 +4,21 @@ export interface CrosswordGrid {
   width: number;
   height: number;
   clues: { [word: string]: string };
+  gridData: CellData[][];
+  acrossClues: ClueData[];
+  downClues: ClueData[];
+}
+
+export interface CellData {
+  letter: string;
+  number: number;
+  isBlack: boolean;
+}
+
+export interface ClueData {
+  number: number;
+  clue: string;
+  answer?: string;
 }
 
 export interface WordPlacement {
@@ -251,17 +266,84 @@ export const generateCrossword = (words: string[], width: number, height: number
       // Number the placements for references
       const numberedPlacements = numberCrosswordPlacements(placements);
       
+      // Create gridData, acrossClues, and downClues
+      const gridData = createGridData(grid, numberedPlacements);
+      const { acrossClues, downClues } = createCluesLists(numberedPlacements);
+      
       return {
         grid,
         wordPlacements: numberedPlacements,
         width,
         height,
         clues,
+        gridData,
+        acrossClues,
+        downClues,
       };
     }
   }
   
   return null; // Failed to generate a satisfactory crossword
+};
+
+// Create gridData from the grid and word placements
+const createGridData = (grid: string[][], wordPlacements: WordPlacement[]): CellData[][] => {
+  const height = grid.length;
+  const width = grid[0].length;
+  
+  // Initialize gridData with empty cells
+  const gridData = Array(height).fill(null).map(() => 
+    Array(width).fill(null).map(() => ({
+      letter: '',
+      number: 0,
+      isBlack: true
+    }))
+  );
+  
+  // Fill in gridData based on the grid
+  for (let i = 0; i < height; i++) {
+    for (let j = 0; j < width; j++) {
+      if (grid[i][j] !== '') {
+        gridData[i][j] = {
+          letter: grid[i][j],
+          number: 0,
+          isBlack: false
+        };
+      }
+    }
+  }
+  
+  // Add numbers to cells that start words
+  for (const placement of wordPlacements) {
+    if (placement.number) {
+      gridData[placement.row][placement.col].number = placement.number;
+    }
+  }
+  
+  return gridData;
+};
+
+// Create across and down clue lists from word placements
+const createCluesLists = (wordPlacements: WordPlacement[]): { acrossClues: ClueData[], downClues: ClueData[] } => {
+  const acrossClues = wordPlacements
+    .filter(placement => placement.direction === 'across')
+    .sort((a, b) => (a.number || 0) - (b.number || 0))
+    .map(placement => ({
+      number: placement.number || 0,
+      clue: placement.clue,
+      answer: placement.word
+    }));
+    
+  const downClues = wordPlacements
+    .filter(placement => placement.direction === 'down')
+    .sort((a, b) => (a.number || 0) - (b.number || 0))
+    .map(placement => ({
+      number: placement.number || 0,
+      clue: placement.clue,
+      answer: placement.word
+    }));
+    
+  return { acrossClues, downClues };
 };
 
 // Number the placements sequentially for display

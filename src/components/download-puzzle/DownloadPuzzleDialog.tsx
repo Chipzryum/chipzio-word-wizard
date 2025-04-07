@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
@@ -18,6 +19,7 @@ import { ControlPanel } from "./ControlPanel";
 import { ActionButtons } from "./ActionButtons";
 import { PuzzlePDFPreview } from "./PuzzlePDFPreview";
 import { CrosswordPDFPreview } from "./CrosswordPDFPreview";
+import { MultiPuzzleGrid } from "./MultiPuzzleGrid";
 import { 
   PAGE_SIZES, 
   UNITS, 
@@ -63,6 +65,7 @@ interface DownloadPuzzleDialogProps {
   puzzleType?: "wordsearch" | "crossword";
   showSolution?: boolean;
   visualPreviewComponent?: "wordsearch" | "crossword";
+  allPuzzles?: CombinedPuzzleGrid[];
 }
 
 const MIN_IMAGE_SPACING = 0;
@@ -78,7 +81,8 @@ export function DownloadPuzzleDialog({
   },
   puzzleType = "wordsearch",
   showSolution = false,
-  visualPreviewComponent = "wordsearch"
+  visualPreviewComponent = "wordsearch",
+  allPuzzles = []
 }: DownloadPuzzleDialogProps) {
   
   const [title, setTitle] = useState(defaultValues.title);
@@ -123,9 +127,26 @@ export function DownloadPuzzleDialog({
   const [imageAngle, setImageAngle] = useState(0);
   const [imageSpacing, setImageSpacing] = useState(MIN_IMAGE_SPACING);
   
+  // Add state for managing multiple puzzles
+  const [activePuzzleIndex, setActivePuzzleIndex] = useState(0);
+  const [puzzles, setPuzzles] = useState<CombinedPuzzleGrid[]>([]);
+  
   const { toast } = useToast();
   
   const previewScaleFactor = 0.3;
+
+  // Initialize puzzles from props when dialog opens
+  useEffect(() => {
+    if (open) {
+      if (allPuzzles && allPuzzles.length > 0) {
+        setPuzzles(allPuzzles);
+        setActivePuzzleIndex(0);
+      } else if (puzzle) {
+        setPuzzles([puzzle]);
+        setActivePuzzleIndex(0);
+      }
+    }
+  }, [open, puzzle, allPuzzles]);
 
   const handleUnitChange = (unit: Unit) => {
     setSelectedUnit(unit);
@@ -191,10 +212,11 @@ export function DownloadPuzzleDialog({
   };
 
   const calculateGridCellSize = () => {
-    if (!puzzle) return 20;
+    if (!puzzles[activePuzzleIndex]) return 20;
     
-    const gridWidth = puzzle.grid[0].length;
-    const gridHeight = puzzle.grid.length;
+    const currentPuzzle = puzzles[activePuzzleIndex];
+    const gridWidth = currentPuzzle.grid[0].length;
+    const gridHeight = currentPuzzle.grid.length;
     
     const reservedSpace = calculateSpaceNeeded() + 40;
     
@@ -254,11 +276,11 @@ export function DownloadPuzzleDialog({
   };
 
   const handleSaveLayout = async () => {
-    if (!puzzle) {
+    if (puzzles.length === 0) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No puzzle to save. Please generate a puzzle first.",
+        description: "No puzzles to save. Please generate puzzles first.",
       });
       return;
     }
@@ -276,9 +298,11 @@ export function DownloadPuzzleDialog({
       let pdfDocument;
       
       if (puzzleType === "crossword") {
+        // For crossword puzzles
         pdfDocument = (
           <CrosswordPDFPreview
-            puzzle={puzzle as CrosswordGrid}
+            puzzle={puzzles[activePuzzleIndex] as CrosswordGrid}
+            allPuzzles={puzzles as CrosswordGrid[]}
             title={title}
             subtitle={subtitle}
             instruction={instruction}
@@ -312,9 +336,11 @@ export function DownloadPuzzleDialog({
           />
         );
       } else {
+        // For word search puzzles
         pdfDocument = (
           <PuzzlePDFPreview
-            puzzle={puzzle as PuzzleGrid}
+            puzzle={puzzles[activePuzzleIndex] as PuzzleGrid}
+            allPuzzles={puzzles as PuzzleGrid[]}
             title={title}
             subtitle={subtitle}
             instruction={instruction}
@@ -372,11 +398,11 @@ export function DownloadPuzzleDialog({
   };
 
   const handleDownload = async () => {
-    if (!puzzle) {
+    if (puzzles.length === 0) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No puzzle to download. Please generate a puzzle first.",
+        description: "No puzzles to download. Please generate puzzles first.",
       });
       return;
     }
@@ -422,12 +448,22 @@ export function DownloadPuzzleDialog({
     if (offset === 0) return '0';
     return offset > 0 ? `+${offset}` : `${offset}`;
   };
+  
+  const handleSelectPuzzle = (index: number) => {
+    if (index >= 0 && index < puzzles.length) {
+      setActivePuzzleIndex(index);
+    }
+  };
 
   const renderPreview = () => {
+    if (puzzles.length === 0) return null;
+    
+    const currentPuzzle = puzzles[activePuzzleIndex];
+    
     if (visualPreviewComponent === "crossword") {
       return (
         <CrosswordVisualPreview 
-          puzzle={puzzle as CrosswordGrid}
+          puzzle={currentPuzzle as CrosswordGrid}
           showLivePreview={showLivePreview}
           isPDFReady={isPDFReady}
           title={title}
@@ -469,7 +505,7 @@ export function DownloadPuzzleDialog({
     } else {
       return (
         <VisualPreview 
-          puzzle={puzzle as PuzzleGrid}
+          puzzle={currentPuzzle as PuzzleGrid}
           showLivePreview={showLivePreview}
           isPDFReady={isPDFReady}
           title={title}
@@ -519,7 +555,8 @@ export function DownloadPuzzleDialog({
     showTitle, showSubtitle, showInstruction, showWordList, showGrid,
     titleOffset, subtitleOffset, instructionOffset, gridOffset, wordListOffset,
     title, subtitle, instruction, selectedSize, customWidth, customHeight,
-    uploadedImages, imageOpacity, imageGridSize, imageAngle, imageSpacing
+    uploadedImages, imageOpacity, imageGridSize, imageAngle, imageSpacing,
+    activePuzzleIndex, puzzles
   ]);
 
   console.log("Word list toggle status:", showWordList);
@@ -530,7 +567,7 @@ export function DownloadPuzzleDialog({
         <DialogHeader>
           <DialogTitle>Download Puzzle</DialogTitle>
           <DialogDescription>
-            Customize your puzzle before downloading
+            Customize your {puzzles.length > 1 ? `puzzles (${puzzles.length} pages)` : "puzzle"} before downloading
           </DialogDescription>
         </DialogHeader>
 
@@ -544,6 +581,20 @@ export function DownloadPuzzleDialog({
           
           <TabsContent value="content" className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
+              {puzzles.length > 1 && (
+                <div className="glass-card rounded-lg p-4 bg-white/50 border shadow-sm">
+                  <h3 className="font-medium mb-3">Pages ({puzzles.length})</h3>
+                  <MultiPuzzleGrid 
+                    puzzles={puzzles}
+                    activePuzzleIndex={activePuzzleIndex}
+                    onSelectPuzzle={handleSelectPuzzle}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Click on a page to select and edit it
+                  </p>
+                </div>
+              )}
+            
               <ControlPanel 
                 showTitle={showTitle}
                 setShowTitle={setShowTitle}
@@ -612,7 +663,7 @@ export function DownloadPuzzleDialog({
             </div>
 
             <div className="space-y-4">
-              <Label>Preview</Label>
+              <Label>Preview (Page {activePuzzleIndex + 1} of {puzzles.length})</Label>
               <div className="border rounded-lg p-4 bg-white h-[430px] flex flex-col items-center justify-center overflow-y-auto relative">
                 {renderPreview()}
               </div>
@@ -622,7 +673,7 @@ export function DownloadPuzzleDialog({
                 handleDownload={handleDownload}
                 isGenerating={isGenerating}
                 isPDFReady={isPDFReady}
-                puzzle={puzzle}
+                puzzle={puzzles[activePuzzleIndex]}
                 pdfBlob={pdfBlob}
               />
               

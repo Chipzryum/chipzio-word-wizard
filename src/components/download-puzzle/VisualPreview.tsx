@@ -183,14 +183,19 @@ export const VisualPreview = ({
     );
   };
 
+  // Set dimensions to maintain A4 aspect ratio
+  const a4AspectRatio = 1 / Math.sqrt(2); // Approximately 0.7071 (standard ISO 216)
+  const scaledWidth = currentWidth * previewScaleFactor;
+  const scaledHeight = scaledWidth / a4AspectRatio;
+
   return (
     <div 
       className="relative border-2 border-black bg-white p-4 overflow-hidden"
       style={{
-        width: `${currentWidth * previewScaleFactor}px`,
-        height: `${currentHeight * previewScaleFactor}px`,
+        width: `${scaledWidth}px`,
+        height: `${scaledHeight}px`,
         maxWidth: '100%',
-        maxHeight: '420px', // Increased from 380px for a larger preview
+        maxHeight: '420px',
       }}
     >
       {/* Apply tiled background pattern with individual rotated images */}

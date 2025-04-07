@@ -1,14 +1,13 @@
 
-import { CrosswordGrid } from "@/utils/crosswordUtils";
+import { PuzzleGrid } from "@/utils/wordSearchUtils";
 import { PDFViewer } from "@react-pdf/renderer";
-import { CrosswordPDFPreview } from "./CrosswordPDFPreview";
-import { 
-  TiledBackground,
-  CrosswordPreviewContent
-} from "./crossword-components";
+import { PuzzlePDFPreview } from "../PuzzlePDFPreview";
+import { CombinedPuzzleGrid } from "../DownloadPuzzleDialog";
+import { PreviewImageBackground } from "./PreviewImageBackground";
+import { PreviewContent } from "./PreviewContent";
 
-interface CrosswordVisualPreviewProps {
-  puzzle: CrosswordGrid | null;
+interface VisualPreviewProps {
+  puzzle: CombinedPuzzleGrid | null;
   showLivePreview: boolean;
   isPDFReady: boolean;
   title: string;
@@ -48,11 +47,10 @@ interface CrosswordVisualPreviewProps {
   imageGridSize?: number;
   imageAngle?: number;
   imageSpacing?: number;
-  showSolution?: boolean;
   includeSolution?: boolean;
 }
 
-export const CrosswordVisualPreview = ({
+export const VisualPreview = ({
   puzzle,
   showLivePreview,
   isPDFReady,
@@ -88,14 +86,13 @@ export const CrosswordVisualPreview = ({
   imageGridSize = 100,
   imageAngle = 0,
   imageSpacing = 0,
-  showSolution = false,
   includeSolution = true,
-}: CrosswordVisualPreviewProps) => {
+}: VisualPreviewProps) => {
   if (showLivePreview && isPDFReady) {
     return (
       <div className="w-full h-full flex-1">
         <PDFViewer width="100%" height="100%" className="border-0">
-          <CrosswordPDFPreview
+          <PuzzlePDFPreview
             puzzle={puzzle}
             title={title}
             subtitle={subtitle}
@@ -125,13 +122,15 @@ export const CrosswordVisualPreview = ({
             imageGridSize={imageGridSize}
             imageAngle={imageAngle}
             imageSpacing={imageSpacing}
-            showSolution={showSolution}
             includeSolution={includeSolution}
           />
         </PDFViewer>
       </div>
     );
   }
+
+  console.log("Rendering VisualPreview with showWordList:", showWordList);
+  console.log("Puzzle words:", puzzle?.wordPlacements.map(wp => wp.word));
 
   // Set dimensions to maintain A4 aspect ratio
   const a4AspectRatio = 1 / Math.sqrt(2); // Approximately 0.7071 (standard ISO 216)
@@ -148,9 +147,8 @@ export const CrosswordVisualPreview = ({
         maxHeight: '420px',
       }}
     >
-      {/* Apply tiled background pattern with individual rotated images */}
-      {uploadedImages && uploadedImages.length > 0 && (
-        <TiledBackground
+      {puzzle && (
+        <PreviewImageBackground
           uploadedImages={uploadedImages}
           currentWidth={currentWidth}
           currentHeight={currentHeight}
@@ -159,36 +157,32 @@ export const CrosswordVisualPreview = ({
           imageOpacity={imageOpacity}
           imageAngle={imageAngle}
           previewScaleFactor={previewScaleFactor}
-        />
-      )}
-      
-      {puzzle && (
-        <CrosswordPreviewContent
-          puzzle={puzzle}
-          title={title}
-          subtitle={subtitle}
-          instruction={instruction}
-          showTitle={showTitle}
-          showSubtitle={showSubtitle}
-          showInstruction={showInstruction}
-          showGrid={showGrid}
-          showWordList={showWordList}
-          titleOffset={titleOffset}
-          subtitleOffset={subtitleOffset}
-          instructionOffset={instructionOffset}
-          gridOffset={gridOffset}
-          wordListOffset={wordListOffset}
-          getVerticalOffset={getVerticalOffset}
-          previewScaleFactor={previewScaleFactor}
-          fontSizes={fontSizes}
-          titleSizeMultiplier={titleSizeMultiplier}
-          subtitleSizeMultiplier={subtitleSizeMultiplier}
-          instructionSizeMultiplier={instructionSizeMultiplier}
-          wordListSizeMultiplier={wordListSizeMultiplier}
-          cellSize={cellSize}
-          letterSize={letterSize}
-          showSolution={showSolution}
-        />
+        >
+          <PreviewContent
+            puzzle={puzzle}
+            title={title}
+            subtitle={subtitle}
+            instruction={instruction}
+            showTitle={showTitle}
+            showSubtitle={showSubtitle}
+            showInstruction={showInstruction}
+            showGrid={showGrid}
+            showWordList={showWordList}
+            titleOffset={titleOffset}
+            subtitleOffset={subtitleOffset}
+            instructionOffset={instructionOffset}
+            gridOffset={gridOffset}
+            wordListOffset={wordListOffset}
+            getVerticalOffset={getVerticalOffset}
+            previewScaleFactor={previewScaleFactor}
+            fontSizes={fontSizes}
+            titleSizeMultiplier={titleSizeMultiplier}
+            subtitleSizeMultiplier={subtitleSizeMultiplier}
+            instructionSizeMultiplier={instructionSizeMultiplier}
+            wordListSizeMultiplier={wordListSizeMultiplier}
+            cellSize={cellSize}
+          />
+        </PreviewImageBackground>
       )}
     </div>
   );
