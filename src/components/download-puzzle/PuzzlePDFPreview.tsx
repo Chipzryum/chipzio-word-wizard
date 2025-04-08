@@ -1,3 +1,4 @@
+
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import { PuzzleGrid } from "@/utils/wordSearchUtils";
 import { CombinedPuzzleGrid } from "./DownloadPuzzleDialog";
@@ -34,7 +35,6 @@ interface PuzzlePDFPreviewProps {
   imageAngle?: number;
   imageSpacing?: number;
   includeSolution?: boolean;
-  showSolution?: boolean;
 }
 
 export const PuzzlePDFPreview = ({
@@ -69,7 +69,6 @@ export const PuzzlePDFPreview = ({
   imageAngle = 0,
   imageSpacing = 0,
   includeSolution = true,
-  showSolution = false,
 }: PuzzlePDFPreviewProps) => {
   if (!puzzle) return null;
   
@@ -99,7 +98,6 @@ export const PuzzlePDFPreview = ({
   // Create a tiled background pattern that's confined to a single page
   const createTiledBackground = () => {
     if (!uploadedImages || uploadedImages.length === 0) return null;
-    
     
     const imageElements = [];
     
@@ -158,7 +156,7 @@ export const PuzzlePDFPreview = ({
   
   // Determine if a cell is part of a word in a specific direction
   const isPartOfWordInDirection = (x: number, y: number, wordPlacement: any, direction: { x: number, y: number }) => {
-    if (!wordPlacement || wordPlacement.direction.x !== direction.x || wordPlacement.direction.y !== direction.y) {
+    if (wordPlacement.direction.x !== direction.x || wordPlacement.direction.y !== direction.y) {
       return false;
     }
     
@@ -174,242 +172,117 @@ export const PuzzlePDFPreview = ({
   };
   
   // Create a puzzle page with the given showSolution setting and puzzle
-  const createPuzzlePage = (puzzleToRender: CombinedPuzzleGrid, index: number, isSolution: boolean, pageNumber: number) => {
-    // Create page label based on whether it's a puzzle or solution
-    const pageLabel = isSolution ? `Answer ${pageNumber}` : `Page ${pageNumber}`;
-    
-    return (
-      <Page 
-        key={`${index}-${isSolution ? 'solution' : 'puzzle'}`} 
-        size={[currentWidth, currentHeight]} 
-        style={pdfStyles.page} 
-        wrap={false}
-      >
-        {/* Tiled background pattern */}
-        {uploadedImages && uploadedImages.length > 0 && createTiledBackground()}
+  const createPuzzlePage = (puzzleToRender: CombinedPuzzleGrid, index: number, showSolution: boolean, pageNumber: number) => (
+    <Page key={`${index}-${showSolution ? 'solution' : 'puzzle'}`} size={[currentWidth, currentHeight]} style={pdfStyles.page} wrap={false}>
+      {/* Tiled background pattern */}
+      {uploadedImages && uploadedImages.length > 0 && createTiledBackground()}
+      
+      <View style={pdfStyles.container}>
+        {showTitle && (
+          <View style={[pdfStyles.titleContainer, {marginTop: getVerticalOffset(titleOffset)}]}>
+            <Text style={pdfStyles.title}>
+              {showSolution 
+                ? `${title.toUpperCase()} - SOLUTION` 
+                : puzzlesToRender.length > 1 
+                  ? `${title.toUpperCase()}` 
+                  : title.toUpperCase()}
+            </Text>
+          </View>
+        )}
         
-        <View style={pdfStyles.container}>
-          {showTitle && (
-            <View style={[pdfStyles.titleContainer, {marginTop: getVerticalOffset(titleOffset)}]}>
-              <Text style={pdfStyles.title}>
-                {isSolution 
-                  ? `${title.toUpperCase()} - SOLUTION` 
-                  : puzzlesToRender.length > 1 
-                    ? `${title.toUpperCase()}` 
-                    : title.toUpperCase()}
-              </Text>
-            </View>
-          )}
-          
-          {showSubtitle && (
-            <View style={[pdfStyles.subtitleContainer, {marginTop: getVerticalOffset(subtitleOffset)}]}>
-              <Text style={pdfStyles.subtitle}>{subtitle.toLowerCase()}</Text>
-            </View>
-          )}
-          
-          {showInstruction && !isSolution && (
-            <View style={[pdfStyles.instructionContainer, {marginTop: getVerticalOffset(instructionOffset)}]}>
-              <Text style={pdfStyles.instruction}>{instruction}</Text>
-            </View>
-          )}
-          
-          {showGrid && (
-            <View style={[pdfStyles.gridContainer, {marginTop: getVerticalOffset(gridOffset)}]}>
-              <View style={pdfStyles.grid}>
-                {puzzleToRender.grid.map((row, i) => (
-                  <View key={i} style={pdfStyles.row}>
-                    {row.map((cell, j) => (
-                      <View key={`${i}-${j}`} style={pdfStyles.cell}>
-                        <Text style={pdfStyles.letter}>
-                          {cell && cell !== ' ' ? cell : ''}
-                        </Text>
-                        
-                        {/* Add solution highlighting if this is a solution page */}
-                        {isSolution && cell && cell !== ' ' && puzzleToRender.wordPlacements && puzzleToRender.wordPlacements.some(wp => {
-                          // Check if this cell is part of a word placement
-                          return isPartOfWord(j, i, wp);
-                        }) && (
-                          <>
-                            {/* Horizontal line for horizontal words */}
-                            {puzzleToRender.wordPlacements.some(wp => 
-                              isPartOfWordInDirection(j, i, wp, { x: 1, y: 0 })
-                            ) && (
-                              <View style={[pdfStyles.solutionLine, pdfStyles.horizontalLine]} />
-                            )}
-                            
-                            {/* Vertical line for vertical words */}
-                            {puzzleToRender.wordPlacements.some(wp => 
-                              isPartOfWordInDirection(j, i, wp, { x: 0, y: 1 })
-                            ) && (
-                              <View style={[pdfStyles.solutionLine, pdfStyles.verticalLine]} />
-                            )}
-                            
-                            {/* Diagonal line (top-left to bottom-right) */}
-                            {puzzleToRender.wordPlacements.some(wp => 
-                              isPartOfWordInDirection(j, i, wp, { x: 1, y: 1 })
-                            ) && (
-                              <View style={[pdfStyles.solutionLine, pdfStyles.diagonalLineDown]} />
-                            )}
-                            
-                            {/* Diagonal line (bottom-left to top-right) */}
-                            {puzzleToRender.wordPlacements.some(wp => 
-                              isPartOfWordInDirection(j, i, wp, { x: 1, y: -1 })
-                            ) && (
-                              <View style={[pdfStyles.solutionLine, pdfStyles.diagonalLineUp]} />
-                            )}
-                          </>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-          
-          {showWordList && (
-            <View style={[pdfStyles.wordListContainer, {marginTop: getVerticalOffset(wordListOffset)}]}>
-              <View style={pdfStyles.wordList}>
-                {puzzleToRender.wordPlacements && puzzleToRender.wordPlacements.map(({ word }, index) => (
-                  <Text key={index} style={pdfStyles.wordItem}>{word.toLowerCase()}</Text>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
+        {showSubtitle && (
+          <View style={[pdfStyles.subtitleContainer, {marginTop: getVerticalOffset(subtitleOffset)}]}>
+            <Text style={pdfStyles.subtitle}>{subtitle.toLowerCase()}</Text>
+          </View>
+        )}
         
-        {/* Page number */}
-        <Text style={pdfStyles.pageNumber}>{pageLabel}</Text>
-      </Page>
-    );
-  };
-  
-  // Create all pages using the current showSolution value if provided
-  if (showSolution !== undefined) {
-    return (
-      <Document>
-        <Page
-          size={[currentWidth, currentHeight]}
-          style={pdfStyles.page}
-          wrap={false}
-        >
-          {/* Tiled background pattern */}
-          {uploadedImages && uploadedImages.length > 0 && createTiledBackground()}
-          
-          <View style={pdfStyles.container}>
-            
-            {showTitle && (
-              <View style={[pdfStyles.titleContainer, {marginTop: getVerticalOffset(titleOffset)}]}>
-                <Text style={pdfStyles.title}>
-                  {showSolution 
-                    ? `${title.toUpperCase()} - SOLUTION` 
-                    : puzzlesToRender.length > 1 
-                      ? `${title.toUpperCase()}` 
-                      : title.toUpperCase()}
-                </Text>
-              </View>
-            )}
-            
-            {showSubtitle && (
-              <View style={[pdfStyles.subtitleContainer, {marginTop: getVerticalOffset(subtitleOffset)}]}>
-                <Text style={pdfStyles.subtitle}>{subtitle.toLowerCase()}</Text>
-              </View>
-            )}
-            
-            {showInstruction && !showSolution && (
-              <View style={[pdfStyles.instructionContainer, {marginTop: getVerticalOffset(instructionOffset)}]}>
-                <Text style={pdfStyles.instruction}>{instruction}</Text>
-              </View>
-            )}
-            
-            {showGrid && puzzle && (
-              <View style={[pdfStyles.gridContainer, {marginTop: getVerticalOffset(gridOffset)}]}>
-                <View style={pdfStyles.grid}>
-                  {puzzle.grid.map((row, i) => (
-                    <View key={i} style={pdfStyles.row}>
-                      {row.map((cell, j) => (
-                        <View key={`${i}-${j}`} style={pdfStyles.cell}>
-                          <Text style={pdfStyles.letter}>
-                            {cell && cell !== ' ' ? cell : ''}
-                          </Text>
-                          
-                          {/* Add solution highlighting if this is a solution preview */}
-                          {showSolution && cell && cell !== ' ' && puzzle.wordPlacements && puzzle.wordPlacements.some(wp => {
-                            // Check if this cell is part of a word placement
-                            return isPartOfWord(j, i, wp);
-                          }) && (
-                            <>
-                              {/* Horizontal line for horizontal words */}
-                              {puzzle.wordPlacements.some(wp => 
-                                isPartOfWordInDirection(j, i, wp, { x: 1, y: 0 })
-                              ) && (
-                                <View style={[pdfStyles.solutionLine, pdfStyles.horizontalLine]} />
-                              )}
-                              
-                              {/* Vertical line for vertical words */}
-                              {puzzle.wordPlacements.some(wp => 
-                                isPartOfWordInDirection(j, i, wp, { x: 0, y: 1 })
-                              ) && (
-                                <View style={[pdfStyles.solutionLine, pdfStyles.verticalLine]} />
-                              )}
-                              
-                              {/* Diagonal line (top-left to bottom-right) */}
-                              {puzzle.wordPlacements.some(wp => 
-                                isPartOfWordInDirection(j, i, wp, { x: 1, y: 1 })
-                              ) && (
-                                <View style={[pdfStyles.solutionLine, pdfStyles.diagonalLineDown]} />
-                              )}
-                              
-                              {/* Diagonal line (bottom-left to top-right) */}
-                              {puzzle.wordPlacements.some(wp => 
-                                isPartOfWordInDirection(j, i, wp, { x: 1, y: -1 })
-                              ) && (
-                                <View style={[pdfStyles.solutionLine, pdfStyles.diagonalLineUp]} />
-                              )}
-                            </>
+        {showInstruction && !showSolution && (
+          <View style={[pdfStyles.instructionContainer, {marginTop: getVerticalOffset(instructionOffset)}]}>
+            <Text style={pdfStyles.instruction}>{instruction}</Text>
+          </View>
+        )}
+        
+        {showGrid && (
+          <View style={[pdfStyles.gridContainer, {marginTop: getVerticalOffset(gridOffset)}]}>
+            <View style={pdfStyles.grid}>
+              {puzzleToRender.grid.map((row, i) => (
+                <View key={i} style={pdfStyles.row}>
+                  {row.map((cell, j) => (
+                    <View key={`${i}-${j}`} style={pdfStyles.cell}>
+                      <Text style={pdfStyles.letter}>
+                        {cell && cell !== ' ' ? cell : ''}
+                      </Text>
+                      
+                      {/* Add solution highlighting if this is a solution page */}
+                      {showSolution && cell && cell !== ' ' && puzzleToRender.wordPlacements.some(wp => {
+                        // Check if this cell is part of a word placement
+                        return isPartOfWord(j, i, wp);
+                      }) && (
+                        <>
+                          {/* Horizontal line for horizontal words */}
+                          {puzzleToRender.wordPlacements.some(wp => 
+                            isPartOfWordInDirection(j, i, wp, { x: 1, y: 0 })
+                          ) && (
+                            <View style={[pdfStyles.solutionLine, pdfStyles.horizontalLine]} />
                           )}
-                        </View>
-                      ))}
+                          
+                          {/* Vertical line for vertical words */}
+                          {puzzleToRender.wordPlacements.some(wp => 
+                            isPartOfWordInDirection(j, i, wp, { x: 0, y: 1 })
+                          ) && (
+                            <View style={[pdfStyles.solutionLine, pdfStyles.verticalLine]} />
+                          )}
+                          
+                          {/* Diagonal line (top-left to bottom-right) */}
+                          {puzzleToRender.wordPlacements.some(wp => 
+                            isPartOfWordInDirection(j, i, wp, { x: 1, y: 1 })
+                          ) && (
+                            <View style={[pdfStyles.solutionLine, pdfStyles.diagonalLineDown]} />
+                          )}
+                          
+                          {/* Diagonal line (bottom-left to top-right) */}
+                          {puzzleToRender.wordPlacements.some(wp => 
+                            isPartOfWordInDirection(j, i, wp, { x: 1, y: -1 })
+                          ) && (
+                            <View style={[pdfStyles.solutionLine, pdfStyles.diagonalLineUp]} />
+                          )}
+                        </>
+                      )}
                     </View>
                   ))}
                 </View>
-              </View>
-            )}
-            
-            {showWordList && puzzle && (
-              <View style={[pdfStyles.wordListContainer, {marginTop: getVerticalOffset(wordListOffset)}]}>
-                <View style={pdfStyles.wordList}>
-                  {puzzle.wordPlacements && puzzle.wordPlacements.map(({ word }, index) => (
-                    <Text key={index} style={pdfStyles.wordItem}>{word.toLowerCase()}</Text>
-                  ))}
-                </View>
-              </View>
-            )}
+              ))}
+            </View>
           </View>
-          
-          {/* Preview page number */}
-          <Text style={pdfStyles.pageNumber}>
-            {showSolution ? "Answer Preview" : "Page Preview"}
-          </Text>
-        </Page>
-      </Document>
-    );
-  }
+        )}
+        
+        {showWordList && (
+          <View style={[pdfStyles.wordListContainer, {marginTop: getVerticalOffset(wordListOffset)}]}>
+            <View style={pdfStyles.wordList}>
+              {puzzleToRender.wordPlacements.map(({ word }, index) => (
+                <Text key={index} style={pdfStyles.wordItem}>{word.toLowerCase()}</Text>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+      
+      {/* Page number */}
+      <Text style={pdfStyles.pageNumber}>Page {pageNumber}</Text>
+    </Page>
+  );
   
-  // For download mode - create all pages with proper numbering
+  // Create all pages
   const pages = [];
+  let pageCounter = 1;
   
   // Add all puzzles
   for (let i = 0; i < puzzlesToRender.length; i++) {
-    // Page counter starts at 1 for each puzzle+solution pair
-    const pageNumber = i + 1;
+    pages.push(createPuzzlePage(puzzlesToRender[i], i, false, pageCounter++));
     
-    // Add puzzle page
-    pages.push(createPuzzlePage(puzzlesToRender[i], i, false, pageNumber));
-    
-    // Add solution page if requested
+    // Add solution pages if requested
     if (includeSolution) {
-      pages.push(createPuzzlePage(puzzlesToRender[i], i, true, pageNumber));
+      pages.push(createPuzzlePage(puzzlesToRender[i], i, true, pageCounter++));
     }
   }
   
@@ -432,7 +305,6 @@ export const PuzzlePDFPreview = ({
     const letterSize = cellSize * 0.6 * cappedLetterSizeMultiplier;
     
     return StyleSheet.create({
-      
       page: {
         padding: 40,
         fontFamily: 'Times-Roman',
@@ -587,8 +459,6 @@ export const PuzzlePDFPreview = ({
   
   // Helper function to check if a cell is part of a word
   function isPartOfWord(x: number, y: number, placement: any): boolean {
-    if (!placement) return false;
-    
     const { startPos, direction, length } = placement;
     for (let i = 0; i < length; i++) {
       const checkX = startPos.x + (direction.x * i);

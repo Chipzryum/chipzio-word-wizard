@@ -31,7 +31,7 @@ interface PreviewContentProps {
   instructionSizeMultiplier: number;
   wordListSizeMultiplier: number;
   cellSize: number;
-  showSolution?: boolean;
+  showSolution?: boolean; // Add this property
 }
 
 export const PreviewContent = ({
@@ -57,7 +57,7 @@ export const PreviewContent = ({
   instructionSizeMultiplier,
   wordListSizeMultiplier,
   cellSize,
-  showSolution = false,
+  showSolution = false, // Provide a default value
 }: PreviewContentProps) => {
   return (
     <div className="flex flex-col h-full relative" style={{ zIndex: 2 }}>

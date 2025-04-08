@@ -46,7 +46,6 @@ interface VisualPreviewProps {
   imageAngle?: number;
   imageSpacing?: number;
   includeSolution?: boolean;
-  showSolution?: boolean;
 }
 
 export const VisualPreview = (props: VisualPreviewProps) => {
@@ -85,7 +84,6 @@ export const VisualPreview = (props: VisualPreviewProps) => {
             imageAngle={props.imageAngle}
             imageSpacing={props.imageSpacing}
             includeSolution={props.includeSolution}
-            showSolution={props.showSolution}
           />
         </PDFViewer>
       </div>

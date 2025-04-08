@@ -16,7 +16,7 @@ export const PreviewGrid = ({
 }: PreviewGridProps) => {
   // Helper function to check if a cell is part of a word in a specific direction
   const isPartOfWordInDirection = (x: number, y: number, wordPlacement: any, direction: { x: number, y: number }) => {
-    if (!wordPlacement || wordPlacement.direction.x !== direction.x || wordPlacement.direction.y !== direction.y) {
+    if (wordPlacement.direction.x !== direction.x || wordPlacement.direction.y !== direction.y) {
       return false;
     }
     
@@ -33,8 +33,6 @@ export const PreviewGrid = ({
   
   // Helper function to check if a cell is part of any word
   const isPartOfWord = (x: number, y: number, placement: any): boolean => {
-    if (!placement) return false;
-    
     const { startPos, direction, length } = placement;
     for (let i = 0; i < length; i++) {
       const checkX = startPos.x + (direction.x * i);
@@ -62,7 +60,7 @@ export const PreviewGrid = ({
               }}
             >
               {letter}
-              {showSolution && letter && puzzle.wordPlacements && (
+              {showSolution && letter && puzzle.wordPlacements && puzzle.wordPlacements.some(wp => isPartOfWord(j, i, wp)) && (
                 <>
                   {/* Horizontal solution line */}
                   {puzzle.wordPlacements.some(wp => isPartOfWordInDirection(j, i, wp, { x: 1, y: 0 })) && (
