@@ -2,7 +2,7 @@
 import { CombinedPuzzleGrid } from "./DownloadPuzzleDialog";
 import { PDFViewer } from "@react-pdf/renderer";
 import { PuzzlePDFPreview } from "./PuzzlePDFPreview";
-import { VisualPreview as VisualPreviewComponent } from "./visual-preview";
+import { VisualPreviewComponent } from "./visual-preview";
 
 interface VisualPreviewProps {
   puzzle: CombinedPuzzleGrid | null;
@@ -46,6 +46,7 @@ interface VisualPreviewProps {
   imageAngle?: number;
   imageSpacing?: number;
   includeSolution?: boolean;
+  showSolution?: boolean;
 }
 
 export const VisualPreview = (props: VisualPreviewProps) => {
@@ -84,6 +85,7 @@ export const VisualPreview = (props: VisualPreviewProps) => {
             imageAngle={props.imageAngle}
             imageSpacing={props.imageSpacing}
             includeSolution={props.includeSolution}
+            showSolution={props.showSolution}
           />
         </PDFViewer>
       </div>

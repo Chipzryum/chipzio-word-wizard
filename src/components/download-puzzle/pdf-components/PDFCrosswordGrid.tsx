@@ -54,7 +54,7 @@ export const PDFCrosswordGrid = ({
     },
     solutionHighlight: {
       position: 'absolute',
-      backgroundColor: 'rgba(239, 68, 68, 0.3)',
+      backgroundColor: 'rgba(239, 68, 68, 0.7)',
       width: '100%',
       height: '2px',
       top: '50%',

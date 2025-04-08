@@ -45,6 +45,7 @@ interface VisualPreviewProps {
   imageAngle?: number;
   imageSpacing?: number;
   includeSolution?: boolean;
+  showSolution?: boolean;
 }
 
 export const VisualPreview = ({
@@ -68,6 +69,7 @@ export const VisualPreview = ({
   imageGridSize = 100,
   imageAngle = 0,
   imageSpacing = 0,
+  showSolution = false,
   ...props
 }: VisualPreviewProps) => {
   // Set dimensions to maintain A4 aspect ratio
@@ -119,7 +121,7 @@ export const VisualPreview = ({
             instructionSizeMultiplier={instructionSizeMultiplier}
             wordListSizeMultiplier={wordListSizeMultiplier}
             cellSize={cellSize}
-            showSolution={false} // Default value
+            showSolution={showSolution}
           />
         </PreviewImageBackground>
       )}
