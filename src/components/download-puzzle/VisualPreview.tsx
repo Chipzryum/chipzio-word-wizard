@@ -2,7 +2,7 @@
 import { CombinedPuzzleGrid } from "./DownloadPuzzleDialog";
 import { PDFViewer } from "@react-pdf/renderer";
 import { PuzzlePDFPreview } from "./PuzzlePDFPreview";
-import { VisualPreviewComponent } from "./visual-preview";
+import { VisualPreview as VisualPreviewComponent } from "./visual-preview";
 
 interface VisualPreviewProps {
   puzzle: CombinedPuzzleGrid | null;
