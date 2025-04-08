@@ -5,12 +5,14 @@ interface PreviewGridProps {
   puzzle: CombinedPuzzleGrid;
   cellSize: number;
   previewScaleFactor: number;
+  showSolution?: boolean;
 }
 
 export const PreviewGrid = ({
   puzzle,
   cellSize,
-  previewScaleFactor
+  previewScaleFactor,
+  showSolution = false
 }: PreviewGridProps) => {
   return (
     <div className="flex flex-col items-center justify-center">
@@ -28,6 +30,9 @@ export const PreviewGrid = ({
               }}
             >
               {letter}
+              {showSolution && letter && (
+                <div className="absolute bg-red-500 opacity-30 w-full h-[2px] top-1/2 transform -translate-y-1/2" />
+              )}
             </div>
           ))}
         </div>

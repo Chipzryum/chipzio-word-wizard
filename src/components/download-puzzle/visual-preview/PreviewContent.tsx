@@ -31,6 +31,7 @@ interface PreviewContentProps {
   instructionSizeMultiplier: number;
   wordListSizeMultiplier: number;
   cellSize: number;
+  showSolution?: boolean; // Add this property
 }
 
 export const PreviewContent = ({
@@ -55,7 +56,8 @@ export const PreviewContent = ({
   subtitleSizeMultiplier,
   instructionSizeMultiplier,
   wordListSizeMultiplier,
-  cellSize
+  cellSize,
+  showSolution = false, // Provide a default value
 }: PreviewContentProps) => {
   return (
     <div className="flex flex-col h-full relative" style={{ zIndex: 2 }}>
@@ -67,7 +69,7 @@ export const PreviewContent = ({
             marginTop: `${getVerticalOffset(titleOffset) * previewScaleFactor}px`,
           }}
         >
-          {title.toUpperCase()}
+          {showSolution ? `${title.toUpperCase()} - SOLUTION` : title.toUpperCase()}
         </div>
       )}
       
@@ -83,7 +85,7 @@ export const PreviewContent = ({
         </div>
       )}
       
-      {showInstruction && (
+      {showInstruction && !showSolution && (
         <div 
           className="text-center mb-4 relative"
           style={{
@@ -105,6 +107,7 @@ export const PreviewContent = ({
             puzzle={puzzle}
             cellSize={cellSize}
             previewScaleFactor={previewScaleFactor}
+            showSolution={showSolution}
           />
         </div>
       )}
@@ -120,6 +123,7 @@ export const PreviewContent = ({
             fontSizes={fontSizes}
             previewScaleFactor={previewScaleFactor}
             wordListSizeMultiplier={wordListSizeMultiplier}
+            showSolution={showSolution}
           />
         </div>
       )}

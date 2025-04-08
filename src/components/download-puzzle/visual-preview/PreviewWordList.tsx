@@ -8,13 +8,15 @@ interface PreviewWordListProps {
   };
   previewScaleFactor: number;
   wordListSizeMultiplier: number;
+  showSolution?: boolean;
 }
 
 export const PreviewWordList = ({
   puzzle,
   fontSizes,
   previewScaleFactor,
-  wordListSizeMultiplier
+  wordListSizeMultiplier,
+  showSolution = false
 }: PreviewWordListProps) => {
   if (!puzzle?.wordPlacements || puzzle.wordPlacements.length === 0) return null;
   
@@ -23,7 +25,7 @@ export const PreviewWordList = ({
       className="flex flex-wrap justify-center mt-4 px-2 relative"
       style={{
         fontSize: `${fontSizes.wordListSize * previewScaleFactor * wordListSizeMultiplier}px`,
-        maxHeight: '140px', // Increased from unspecified
+        maxHeight: '140px',
         overflowY: 'auto'
       }}
     >

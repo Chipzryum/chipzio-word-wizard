@@ -178,7 +178,7 @@ export const VisualPreview = ({
             instructionSizeMultiplier={instructionSizeMultiplier}
             wordListSizeMultiplier={wordListSizeMultiplier}
             cellSize={cellSize}
-            showSolution={puzzle.isAnswer || false}
+            showSolution={false} // Use a boolean value instead of puzzle.isAnswer
           />
         </PreviewImageBackground>
       )}
