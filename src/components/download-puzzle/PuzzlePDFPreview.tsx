@@ -1,3 +1,4 @@
+
 import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import { PuzzleGrid } from "@/utils/wordSearchUtils";
 import { CombinedPuzzleGrid } from "./DownloadPuzzleDialog";
@@ -73,14 +74,6 @@ export const PuzzlePDFPreview = ({
   
   // Determine which puzzles to render
   const puzzlesToRender = allPuzzles && allPuzzles.length > 0 ? allPuzzles : [puzzle];
-  
-  // Remove duplicate puzzles - we'll handle solutions separately
-  const uniquePuzzles = puzzlesToRender.filter((p, index) => {
-    // If this is the first instance of this grid configuration, keep it
-    return puzzlesToRender.findIndex(
-      other => JSON.stringify(other.grid) === JSON.stringify(p.grid)
-    ) === index;
-  });
   
   // Calculate font sizes based on page dimensions and multipliers
   const calculateFontSizes = () => {
@@ -190,7 +183,9 @@ export const PuzzlePDFPreview = ({
             <Text style={pdfStyles.title}>
               {showSolution 
                 ? `${title.toUpperCase()} - SOLUTION` 
-                : title.toUpperCase()}
+                : puzzlesToRender.length > 1 
+                  ? `${title.toUpperCase()}` 
+                  : title.toUpperCase()}
             </Text>
           </View>
         )}
@@ -273,24 +268,21 @@ export const PuzzlePDFPreview = ({
       </View>
       
       {/* Page number */}
-      <Text style={pdfStyles.pageNumber}>
-        {showSolution ? `Answer ${Math.floor(pageNumber / 2) + 1}` : `Page ${Math.floor(pageNumber / 2) + 1}`}
-      </Text>
+      <Text style={pdfStyles.pageNumber}>Page {pageNumber}</Text>
     </Page>
   );
   
   // Create all pages
   const pages = [];
-  let pageCounter = 0;
+  let pageCounter = 1;
   
   // Add all puzzles
-  for (let i = 0; i < uniquePuzzles.length; i++) {
-    // Add the question page
-    pages.push(createPuzzlePage(uniquePuzzles[i], i, false, pageCounter++));
+  for (let i = 0; i < puzzlesToRender.length; i++) {
+    pages.push(createPuzzlePage(puzzlesToRender[i], i, false, pageCounter++));
     
-    // Add solution page if requested
+    // Add solution pages if requested
     if (includeSolution) {
-      pages.push(createPuzzlePage(uniquePuzzles[i], i, true, pageCounter++));
+      pages.push(createPuzzlePage(puzzlesToRender[i], i, true, pageCounter++));
     }
   }
   
