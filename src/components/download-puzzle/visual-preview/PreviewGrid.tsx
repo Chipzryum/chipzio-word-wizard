@@ -21,7 +21,7 @@ export const PreviewGrid = ({
           {row.map((letter, j) => (
             <div
               key={`${i}-${j}`}
-              className="flex items-center justify-center border border-gray-300"
+              className="flex items-center justify-center border border-gray-300 relative"
               style={{
                 width: `${cellSize * previewScaleFactor}px`,
                 height: `${cellSize * previewScaleFactor}px`,
